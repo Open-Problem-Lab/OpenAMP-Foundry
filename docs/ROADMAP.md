@@ -770,6 +770,28 @@ Next-loop candidates that depend on v0.5.20:
   and add CI guard that a `policy_version` bump requires a non-empty
   decision log entry dated within the past 30 days.
 
+## v0.5.40 — Recalibration Policy Version Guard ✓ (2026-07-06)
+
+The recalibration policy could be edited without comparing it to the previous
+policy file. That left a governance gap: a future agent could change cohort
+floors, rate limits, or locked changes while still passing the single-file
+policy loader.
+
+Changes:
+- `openamp_foundry.calibration.policy_version`: compares current vs previous
+  policy files and fails substantive edits unless `policy_version` increases.
+- Prior `locked_changes` must remain present and byte-equivalent as parsed
+  policy objects.
+- A non-empty `docs/DECISION_LOG_YYYY-MM-DD.md` dated within 30 days is required
+  for policy edits.
+- CLI: `openamp-foundry policy-version-check`
+- Makefile target: `make policy-version-check PREVIOUS=<previous_policy.yaml>`
+- Decision-log template: `docs/DECISION_LOG_TEMPLATE.md`
+
+Honest limitation: this guard compares two local policy files. CI or a reviewer
+must supply the previous policy from the base branch; the guard does not fetch
+Git history by itself.
+
 ## v0.5.25 — Subpackage Public API & Import Discipline ✓ (2026-07-05)
 
 Eleven subpackages previously had empty `__init__.py` files. Every
@@ -876,4 +898,3 @@ stratifies by structural class to reveal blind spots.
 - METRICS_CURRENT.md updated with full table and implications for candidate
   selection: diversity selection should deliberately compensate for the
   pipeline's helic/charge bias.
-

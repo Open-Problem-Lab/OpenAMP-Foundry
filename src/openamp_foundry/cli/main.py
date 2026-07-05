@@ -10,6 +10,7 @@ from openamp_foundry.cli.commands.gates import _run_gate_check
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 
 from openamp_foundry.evidence.schemas import validate_json_schema
@@ -798,6 +799,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional output path for the proposal Markdown report.",
     )
 
+    policy_version_check = sub.add_parser(
+        "policy-version-check",
+        help=(
+            "Compare current vs previous recalibration policy files and reject "
+            "silent policy edits without a version bump, preserved locks, and "
+            "a fresh decision log."
+        ),
+    )
+    policy_version_check.add_argument("--current-policy", required=True)
+    policy_version_check.add_argument("--previous-policy", required=True)
+    policy_version_check.add_argument("--decision-log-dir", default="docs")
+    policy_version_check.add_argument(
+        "--today",
+        default=None,
+        help="Optional YYYY-MM-DD date for deterministic checks.",
+    )
+    policy_version_check.add_argument(
+        "--max-decision-log-age-days",
+        type=int,
+        default=30,
+    )
+
     novelty_broad = sub.add_parser(
         "novelty-check-broad",
         help=(
@@ -931,6 +954,29 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "recalibration-engine":
         return _run_recalibration_engine(args)
+
+    if args.command == "policy-version-check":
+        from openamp_foundry.calibration.policy_version import (
+            validate_policy_version_update,
+        )
+
+        check_date = None
+        if args.today:
+            try:
+                check_date = datetime.strptime(args.today, "%Y-%m-%d").date()
+            except ValueError:
+                print(json.dumps({"status": "error", "error": "invalid --today date"}))
+                return 2
+
+        result = validate_policy_version_update(
+            current_policy_path=args.current_policy,
+            previous_policy_path=args.previous_policy,
+            decision_log_dir=args.decision_log_dir,
+            today=check_date,
+            max_decision_log_age_days=args.max_decision_log_age_days,
+        )
+        print(json.dumps(result.to_dict(), indent=2))
+        return 0 if result.passed else 3
 
     if args.command == "synthesis-order":
         return _run_synthesis_order(args)

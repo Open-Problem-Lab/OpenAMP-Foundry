@@ -8,6 +8,11 @@ import json
 import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
 
 def _deep_get(d: dict, path: str) -> object:
     """Resolve a dotted path like 'a.b.c' in a nested dict."""

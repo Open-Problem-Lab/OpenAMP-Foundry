@@ -184,7 +184,19 @@ If real wet-lab data justifies a policy change:
    That change is not allowed.
 
 The policy validator (`openamp_foundry.calibration.policy`) enforces
-steps 5–7 mechanically. The CI gate
+single-file policy integrity. The version guard
+(`openamp_foundry.calibration.policy_version`) compares current and previous
+policy files and fails if a substantive edit lacks a version bump, mutates prior
+`locked_changes`, or lacks a fresh non-empty decision log. Run:
+
+```bash
+python -m openamp_foundry.cli policy-version-check \
+  --current-policy configs/recalibration_policy.yaml \
+  --previous-policy path/to/previous/recalibration_policy.yaml \
+  --decision-log-dir docs
+```
+
+The CI gate
 (`tests/test_recalibration_gate.py::test_canonical_prohibited_actions_match_policy`)
 enforces the canonical prohibited-action list.
 

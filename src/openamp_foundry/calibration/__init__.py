@@ -40,6 +40,11 @@ from openamp_foundry.calibration.policy import (
     load_recalibration_policy,
 )
 
+from openamp_foundry.calibration.policy_version import (
+    PolicyVersionCheck,
+    validate_policy_version_update,
+)
+
 from openamp_foundry.calibration.engine import (
     BudgetExceededError,
     PolicyViolationError,
@@ -81,6 +86,9 @@ __all__ = [
     "ReviewerArtefact",
     "LockedChange",
     "PolicyLoadError",
+    # Policy version guard
+    "validate_policy_version_update",
+    "PolicyVersionCheck",
     # Gate
     "evaluate_recalibration_gate",
     "write_gate_verdict_json",
