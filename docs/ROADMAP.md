@@ -189,7 +189,7 @@ Implemented during the pre-wet-lab improvement loop (PRs #31–#54):
 
 - **Multi-class triage benchmark** (`benchmark/triage.py`): tests whether the
   pipeline can rank selective AMPs > hemolytic AMPs > random decoys in a single
-  combined panel (125 selective + 45 hemolytic + 96 decoys = 266 total).
+  combined panel (125 selective + 54 hemolytic + 96 decoys = 275 total).
 - Addresses the v1.1 ROADMAP item: "benchmark candidate triage against a
   reference panel that includes selective AMPs, hemolytic positives, inactive
   peptides, and random controls."
@@ -198,8 +198,12 @@ Implemented during the pre-wet-lab improvement loop (PRs #31–#54):
   anti-selective bias. Hemolytic AMPs have stronger amphipathic helices, higher
   hydrophobic moment, and higher charge — exactly the features the activity
   scorer rewards.
-- **Key finding:** Only `selectivity_proxy` triages correctly (all three pairwise
-  AUROCs > 0.5), but at the cost of decoy discrimination (0.782 vs ensemble 0.848).
+- **Key finding:** `selectivity_proxy` triages best (all three pairwise AUROCs > 0.5),
+  but at the cost of decoy discrimination (0.782 vs ensemble 0.848).
+- **Key finding:** `expert_composite` now faces the same mixed-panel benchmark:
+  it clears the pairwise triage rule (sel>decoy 0.757, hem>decoy 0.746,
+  sel>hem 0.545), but its top-20 includes 5 decoys. It must not replace the
+  ensemble activity gate.
 - **Key finding:** The naive `triage_score` (activity × (1 - hemolysis_risk))
   does NOT fix the anti-selective bias because hemolysis_risk is too weak
   (detection AUROC 0.565, not significant on expanded benchmark).
@@ -226,32 +230,177 @@ Changes:
 Why this matters:
 The triage benchmark (v0.5.12) showed the ensemble has an anti-selective bias
 (sel_vs_hem AUROC=0.466). The expert composite incorporates selectivity_proxy,
-hemolysis risk, helix-hinge analysis, and motif novelty — partially correcting
-this bias. Expert-ranked top-5 candidates have lower mean hemolysis_risk than
-ensemble-ranked top-5 on the mixed benchmark set (verified by test).
+hemolysis risk, helix-hinge analysis, and motif novelty. It partially improves
+selective-vs-hemolytic ordering (triage benchmark: 0.545 vs ensemble 0.466), but
+it also weakens top-k decoy exclusion (top-20 includes 5 decoys vs 0 for ensemble).
+Expert-ranked top-5 candidates have lower mean hemolysis_risk than ensemble-ranked
+top-5 on the mixed benchmark set (verified by test).
 
 Honest limitation: The expert composite's hemolysis components are not statistically
 significant detectors on the expanded n=179 benchmark (AUROC=0.565, CI 0.47-0.66).
-Expert ranking is a safety-aware alternative, not a validated safety guarantee.
+Expert ranking is a safety-aware alternative, not a validated safety guarantee or
+a replacement for activity-gated ensemble selection. Wet-lab hemolysis assay remains
+mandatory.
 
-## v0.5.14 — Ranking policy contract ✓ (2026-07-02)
+## v0.5.14 — Strict Triage Benchmark: Composition-Matched Decoys ✓ (2026-07-02)
 
-- Added `selection/ranking_policy.py` — explicit machine-readable policy for when
-  `ensemble` vs `expert` ranking is justified by current benchmark evidence.
-- `rank` CLI now prints the selected ranking policy alongside `ranking_mode`, so
-  automation can see caution text instead of assuming all ranking modes are equally supported.
-- Batch report schema expanded: `report.json` now records `ranking_policy` with
-  evidence basis, caution, and non-claim language.
-- `metrics_snapshot.json` now carries the current default-vs-alternative ranking
-  recommendation, making benchmark truth easier to consume without re-reading narrative docs.
-- Purpose: stop quiet score-shopping. Ensemble remains the broad synthesis gate;
-  expert mode is a narrower safety-aware alternative that still lacks validated hemolysis prediction.
-Wet-lab hemolysis assay remains mandatory.
+The standard triage benchmark (v0.5.12) uses random background peptides as
+decoys. These are trivially distinguishable from AMPs because their amino acid
+composition is protein-like, not AMP-like. This inflates selective_vs_decoy and
+hemolytic_vs_decoy AUROCs, making scorers appear to triage well when they are
+really only solving the easy "AMP vs random" problem.
+
+The strict triage benchmark replaces random decoys with **composition-matched
+scrambled versions** of the selective AMPs — same amino acids, permuted order.
+This destroys amphipathic helical phase, hydrophobic moment, and charge
+distribution patterns while preserving all composition-based features.
+
+Changes:
+- `benchmark/triage.py`: `run_strict_triage_benchmark()` — generates scrambled
+  decoys, runs the same 10-scorer pairwise triage comparison
+- `benchmark/metrics_snapshot.py`: strict_triage section added to snapshot
+- `tests/test_triage_benchmark.py`: 12 new tests for strict triage (structure
+  + findings)
+- `outputs/metrics_snapshot.json`: regenerated with strict triage results
+- `docs/METRICS_CURRENT.md`: strict triage results table and interpretation
+
+Key honest finding: **No scorer triages correctly with composition-matched
+decoys.** The standard triage "success" of selectivity_proxy and
+expert_composite was an artifact of trivially distinguishable decoys.
+selectivity_proxy collapses to exactly 0.5000 on selective_vs_decoy (confirming
+it is purely composition-driven), and the ensemble drops from 0.848 to 0.572.
+
+The selective_vs_hemolytic AUROC is identical between standard and strict
+(expected: both classes are real AMPs, only the decoy class changes). This
+confirms the real bottleneck — selective-vs-hemolytic discrimination — is
+unchanged and requires structural or contextual features beyond current 1D
+physicochemical scorers.
+
+## v0.5.15 — Feature Decomposition Benchmark ✓ (2026-07-03)
+
+The strict triage benchmark (v0.5.14) proved no composite scorer passes
+selective_vs_hemolytic discrimination (AUROC 0.43-0.54). But it did not explain
+*why* — only that the aggregate fails. This benchmark decomposes the failure
+into per-feature contributions: which individual physicochemical features have
+statistically significant signal for distinguishing hemolytic from selective AMPs?
+
+Changes:
+- `benchmark/feature_decomp.py`: `run_feature_decomposition_benchmark()` — tests
+  all 30 scalar features from `compute_features()` individually for selective_vs_hemolytic
+  AUROC with bootstrap CIs, direction, significance, and selectivity-proxy usage flags
+- `benchmark/metrics_snapshot.py`: feature_decomposition section added to snapshot
+- `cli/commands/benchmark.py`: `bench feature-decomp` CLI command
+- `Makefile`: `bench-feature-decomp` target
+- `tests/test_feature_decomp.py`: 20 tests covering structure, findings, and snapshot integration
+- `outputs/metrics_snapshot.json`: regenerated with feature decomposition results
+- `docs/METRICS_CURRENT.md`: feature decomposition results table and interpretation
+
+Key honest finding: **The selectivity proxy ignores the strongest discriminative
+features.** `hydrophobic_fraction` (AUROC 0.6745, CI 0.58-0.77) is the single best
+feature for selective_vs_hemolytic discrimination, yet the proxy uses only charge
+and GRAVY. 8 of 30 features have significant signal; 6 of those 8 are NOT used
+by the current selectivity model. This converts the v0.5.14 aggregate failure
+into actionable diagnostic information: the next loop knows exactly which feature
+axes to combine into a richer selectivity scorer.
+
+## v0.5.16 — Rich Selectivity Scorer ✓ (2026-07-03)
+
+The feature decomposition benchmark (v0.5.15) identified 8 statistically significant
+features for selective_vs_hemolytic discrimination, but the old `selectivity_proxy`
+(charge + GRAVY) used only 2. This version builds a richer composite selectivity
+scorer from the evidence — the first pipeline score with statistically significant
+hemolysis detection on the expanded n=179 benchmark.
+
+Changes:
+- `scoring/selectivity_rich.py`: `rich_selectivity_score()` — composite of 8
+  evidence-identified features, weighted by detection AUROC, with full component
+  breakdown via `rich_selectivity_breakdown()`
+- `benchmark/retrospective.py`: rich selectivity added to selectivity benchmark
+  evaluation and verdict
+- `benchmark/triage.py`: rich selectivity added to standard and strict triage
+  benchmarks
+- `benchmark/metrics_snapshot.py`: selectivity snapshot expanded with
+  `per_score_auroc` and `rich_selectivity_verdict`
+- `cli/commands/benchmark.py`: selectivity bench summary includes
+  `rich_selectivity_verdict`
+- `tests/test_selectivity_rich.py`: 18 tests covering scoring, breakdown, and
+  benchmark integration
+- `outputs/metrics_snapshot.json`: regenerated with rich selectivity results
+
+Key finding: rich selectivity detection AUROC=0.7138 (CI 0.6266-0.7951) — first
+pipeline score with CI excluding 0.5 on selective_vs_hemolytic. Old
+selectivity_proxy=0.5744 (CI 0.4954-0.6558). Honest limitation: does NOT triage
+AMP-vs-decoy (selective_vs_decoy=0.19); designed for within-AMP selectivity only.
+
+## v0.5.17 — Rich Selectivity Integrated into Production Pipeline ✓ (2026-07-03)
+
+The rich selectivity scorer (v0.5.16) was benchmarked but not connected to the
+production candidate pipeline. This version wires it into every stage where
+selectivity matters for candidate selection, expert review, and evidence
+traceability.
+
+Changes:
+- `pipeline.py`: `score_candidates()` now computes `rich_selectivity` for every
+  candidate and includes it in `raw_scores` (alongside the legacy
+  `selectivity_proxy` for backward comparability)
+- `scoring/expert.py`: `rich_selectivity` replaces `hemolysis_safety` (AUROC=0.565,
+  not significant) as the expert composite's hemolysis-risk component (weight 0.10).
+  The old `selectivity_proxy` remains as the expert's activity-ranking selectivity
+  component (weight 0.20) because it carries AMP-vs-decoy signal (AUROC=0.7729).
+  Old `hemolysis_safety` preserved as `hemolysis_safety_legacy` in expert extras.
+- `selection/pilot.py`: `_pilot_priority()` now uses `rich_selectivity` instead of
+  `selectivity_proxy` for the safety tiebreaker, with backward-compat fallback.
+- `reports/pilot_panel.py`: pilot CSV and markdown now include a `rich_selectivity`
+  column alongside `selectivity_proxy` for expert comparison.
+- `benchmark/retrospective.py`: expert ablation benchmark references
+  `rich_selectivity` instead of `hemolysis_safety` in per-component AUROC.
+- `tests/test_rich_selectivity_integration.py`: 14 tests verifying rich_selectivity
+  flows through pipeline scores, evidence certificates, expert composite, pilot
+  priority, and pilot panel report.
+- `outputs/metrics_snapshot.json`: regenerated with updated expert AUROC.
+
+Key finding: expert composite AUROC drops slightly from 0.7119 to 0.7097 (−0.0022)
+on AMP-vs-decoy — acceptable because the expert now includes a **significant**
+hemolysis detector (CI excludes 0.5) instead of the old non-significant one.
+The `rich_selectivity` component is anti-AMP by design (AUROC=0.1973 for
+AMP-vs-decoy) because it penalises high hydrophobicity and charge that define
+AMPs — this is the correct tradeoff.
+
+## v0.5.18 — Two-Gate Triage Composite ✓ (2026-07-03)
+
+The triage benchmark (v0.5.12) showed no scorer could pass all three pairwise
+AUROC conditions with strong selective-vs-hemolytic separation. The old
+`triage_score` (activity × (1 - hemolysis_risk)) used a non-significant
+hemolysis detector. This version adds `gate_triage` = activity ×
+rich_selectivity, combining the two strongest complementary signals.
+
+Changes:
+- `benchmark/triage.py`: `gate_triage` added to `_score_all()` and the scorer
+  list in both `run_triage_benchmark()` and `run_strict_triage_benchmark()`.
+  Top-20 class distribution breakdowns added.
+- `benchmark/metrics_snapshot.py`: `top_20_by_gate_triage` added to both triage
+  and strict_triage snapshot sections.
+- `tests/test_triage_benchmark.py`: 8 new tests in `TestGateTriageFindings`
+  covering structure, standard triage success, selective-vs-hemolytic threshold,
+  improvement over old triage_score, top-20 distribution, hemolytic reduction vs
+  ensemble, best-scorer assertion, and strict triage honest-failure test.
+- `outputs/metrics_snapshot.json`: regenerated with gate_triage results.
+
+Key result: **gate_triage is the first scorer to pass all three standard triage
+conditions with selective_vs_hemolytic > 0.65** (sel_vs_dec=0.779,
+hem_vs_dec=0.686, sel_vs_hem=0.666). Top-20: 16 selective / 1 hemolytic / 3 decoy.
+
+Honest limitation: gate_triage does NOT pass strict triage (composition-matched
+decoys). Its hemolytic_vs_decoy drops to 0.489 because rich_selectivity
+penalizes the AMP-like composition that hemolytic AMPs share with their
+scrambled versions. It also retains 3 decoys in top-20 (vs 0 for ensemble).
+It must NOT replace the ensemble activity gate — it is a complementary signal.
 
 ## v1.0 — Validated dry-lab-to-wet-lab loop
 
 - independently reviewed assay batch (expert_review.yml GitHub issue template);
 - lab results ingested via `schemas/lab_result.schema.json`;
+- reproducible wet-lab result report via `openamp_foundry lab-result-report` so raw assay JSON turns into a control-aware review artifact before recalibration;
 - negative results archived where safe;
 - active-learning batch 2 (D-amino variants, MDR strain panel);
 - public reproducibility report.
@@ -260,7 +409,7 @@ Wet-lab hemolysis assay remains mandatory.
 
 - ~~write the first explicit simulator scope document: what OpenAMP will model and what it will not;~~
 - ~~add membrane/selectivity/stability proxy interfaces with uncertainty fields;~~
-- ~~benchmark candidate triage against a reference panel that includes selective AMPs, hemolytic positives, inactive peptides, and random controls;~~ (v0.5.12: triage benchmark added — ensemble fails, selectivity_proxy only correct triager)
+- ~~benchmark candidate triage against a reference panel that includes selective AMPs, hemolytic positives, inactive peptides, and random controls;~~ (v0.5.12: standard triage added — selectivity_proxy and expert_composite pass; v0.5.14: strict triage with composition-matched decoys added — **no scorer passes**, standard triage success was inflated by trivially distinguishable random decoys)
 - require every proxy module to justify itself against cheap heuristic baselines before it affects selection.
 
 ## v2.x — Wet-lab compression engine
@@ -278,9 +427,193 @@ review (2026-06-28). Progress on these would materially raise breakthrough proba
 | Gap | Why it matters | Effort estimate |
 |-----|----------------|-----------------|
 | ~~Large-scale benchmark (≥ 500 AMPs vs composition-matched decoys, cluster-split)~~ | ~~Current AUROC 0.8420 measured on 43+44 demo set (n=87, CI₉₅: 0.76–0.91); may not generalise~~ | **Partial** (PR #110: expanded to 95 AMPs + 96 decoys, n=191, AUROC=0.7832, CI₉₅: 0.72–0.84; 52 new public-domain AMPs from 12 taxonomic classes; covers defensins, proline-rich, lantibiotics — a more honest estimate. Cluster-split benchmark added: cluster-aware CI 0.7061–0.8526, representative AUROC 0.7607. 500+ target still deferred to v1.0+) |
-| External predictor ensemble adapters (CAMPR4, AMPScanner, dbAMP, AntiCP2, Macrel) | Independent second opinions on activity; required for scientific credibility. Manual web-submission checklist at `outputs/external_predict_checklist.md`. Macrel v1.6.0 CLI ONNX bug documented PR #77 — all sequences (incl. canonical AMPs magainin-2, LL-37) misclassified as NAMP; use web server at big-data-biology.org/software/macrel. AMPlify omitted: GPU/ONNX env incompatible with current deps | Medium (checklist generated; web submissions pending) |
+| External predictor ensemble adapters (CAMPR4, AMPScanner, dbAMP, AntiCP2, Macrel) | Independent second opinions on activity; required for scientific credibility. Wave 0.5 has completed external evidence for AMPScanner v2, AMPActiPred, Macrel web, HemoFinder, and AntiCP 2.0 with CAMPR4 excluded; see `docs/METRICS_CURRENT.md`. The reusable generic 5-tool pilot-panel workflow still requires a filled `outputs/external_predict_results.csv` per future panel. Macrel v1.6.0 CLI ONNX bug documented PR #77 — all sequences (incl. canonical AMPs magainin-2, LL-37) misclassified as NAMP; use web server at big-data-biology.org/software/macrel. AMPlify omitted: GPU/ONNX env incompatible with current deps | Partial (Wave 0.5 complete; generic future-panel Gate 6 remains panel-specific) |
 | ~~True novelty check against APD3, DRAMP v3.0, dbAMP~~ | ~~Current novelty scored against 45-sequence seed set only; may overestimate novelty~~ | **Done** (v0.5.7: BioPython BLOSUM62 local alignment vs 27,234 AMPs from APD6+DRAMP+UniProt; Wave 0.5 novelty corrected from 53/60 RELATED_NOVEL → 39 CLOSE_RELATIVE + 19 KNOWN_VARIANT + 1 RELATED_NOVEL) |
 | ~~AUPRC alongside AUROC~~ | ~~Better metric for class-imbalanced AMP datasets~~ | **Done** (PR #58; updated PR #72) — pipeline AUPRC = 0.8627 |
 | Wet-lab result integration (active-learning round 2) | Required to move from 15–30% to 50%+ credible probability | Requires wet-lab |
 | ~~Pre-registration of assay protocol before synthesis~~ | ~~Strengthens causal inference; reduces reporting bias~~ | **Done** (docs/ASSAY_PREREGISTRATION.md — PRs #83; includes MRSA USA300, serum stability, Gate P3 aligned) |
 | Public benchmark paper (replicable, cluster-split, open datasets) | Sets community standard; enables external validation | Large |
+
+## v0.5.19 — Calibration Intake Module ✓ (2026-07-04)
+
+The lab-result ingestion layer (`data/lab_results.py`, `reports/lab_result_report.py`,
+`lab-result-report` CLI) was already in place, but there was no way to **join the
+pilot panel predictions with the lab-result actuals** to see whether the pipeline's
+predictions matched reality. Without that join, the wet-lab feedback loop has no
+intake valve, and any future recalibration would be operating on raw assay data
+without the prediction-vs-actual contrast it needs.
+
+This version adds the first step of the closed wet-lab feedback loop: a
+calibration-intake report that joins a pilot panel CSV with a directory of
+validated lab result JSON files. It is descriptive only — it does not rewrite
+selection rules, does not modify scoring weights, and does not upgrade assay
+readouts into biological claims.
+
+Changes:
+- `src/openamp_foundry/calibration/__init__.py`: new package
+- `src/openamp_foundry/calibration/intake.py`: new module
+  - `build_calibration_intake_report(panel_csv, results_dir)` — joins predictions
+    with actuals on `candidate_id`, produces a machine-readable report
+  - `write_calibration_intake_json(report, out_path)` and
+    `write_calibration_intake_markdown(report, out_path)` — output writers
+  - **Honest minimum-cohort-size gate**: aggregate cohort metrics are NOT
+    reported when `n < 5`. Below the gate the metric is marked
+    `insufficient_data: True` and no point estimate is produced. This prevents
+    small-sample theater where 2-3 MIC readouts could swing an "AUROC" by 0.30.
+  - Two pilot cohort metrics: `activity_vs_active_mic` (MIC ≤ 32 µg/mL active)
+    and `rich_selectivity_vs_high_hemolysis` (hemolysis ≥ 10% high-risk).
+  - Per-candidate join rows expose every prediction column plus the
+    aggregated actual outcomes.
+  - Control failures and orphan lab results (results with no matching
+    candidate) are surfaced as separate audit fields.
+- `src/openamp_foundry/cli/commands/reports.py`: `_run_calibration_intake`
+- `src/openamp_foundry/cli/main.py`: `calibration-intake` subcommand registered
+- `examples/lab_results/`: 5 clearly-labeled SYNTHETIC JSON files demonstrating
+  the workflow (active hit, inactive candidate, low hemolysis, high hemolysis,
+  control failure). Disclaimer required in every file's `disclaimer` field.
+- `examples/lab_results/README.md`: explicitly disclaims real-world use
+- `examples/lab_results_panel.csv`: 8-candidate synthetic pilot panel
+- `tests/test_calibration_intake.py`: 29 tests covering empty panels, missing
+  columns, orphan detection, control failure surfacing, cohort metric gating
+  (below/equal/above `MIN_COHORT_SIZE`), hemolysis direction logic,
+  synthetic-example schema validation, and threshold constants
+- `Makefile`: `lab-result-intake` and `lab-result-intake-example` targets
+- Total tests: 1614 passing (was 1585)
+
+Key honest limitation: this module does NOT trigger recalibration. It is the
+intake valve that produces a review artifact for a separate, human-reviewed
+recalibration workflow (see `docs/DECISION_RULES.md` and `docs/WAVE2_PLAN.md`).
+Cohort metrics are descriptive only; they do not validate the pipeline, do not
+control for selection bias from the pre-registered shortlist, and must not be
+used to rewrite scoring weights after the fact.
+
+The synthetic example data is clearly labeled in every JSON file's `disclaimer`
+field and in `examples/lab_results/README.md`. It exists solely to exercise the
+intake workflow end-to-end so future agents and reviewers can verify the code
+path without real wet-lab data. When real validated lab results arrive, replace
+the example directory — the pipeline itself does not change.
+
+## v0.5.20 — Recalibration Policy + Gate ✓ (2026-07-04)
+
+The v0.5.19 calibration-intake module joins pilot-panel predictions with
+validated lab-result actuals and produces a per-candidate review report.
+It is intentionally descriptive only. The obvious next step would be to
+"act on" those intake reports by adjusting scoring weights. Without a
+machine-readable policy that gates that action, the most dangerous
+failure mode is silent recalibration: an agent sees real wet-lab data,
+decides the scorer "needs improvement," and rewrites weights to fit.
+That is the textbook cherry-picking this project exists to prevent.
+
+This version adds the **gate that protects** any future recalibration.
+It is the missing permission layer between v0.5.19 intake and a
+recalibration engine that does not yet exist.
+
+Changes:
+- `configs/recalibration_policy.yaml`: human-authored, machine-readable
+  pre-registered policy.
+  - 7 `minimum_conditions` (cohort size, controls, orphans, positives,
+    negatives, metrics availability) — every rule also listed in
+    `locked_changes` so removal requires a documented decision log entry.
+  - 5 `prohibited_actions` (toxicity relaxation, hemolysis relaxation,
+    novelty relaxation, pathogen optimization, post-hoc success
+    redefinition) — permanent floor, mirrors `AGENTS.md` and
+    `MISSION.md`. Validator rejects any policy file that drops them.
+  - 2 `rate_limits` (L1 weight budget 0.10; cooldown 14 days) — evaluated
+    when the corresponding CLI inputs are supplied; `unknown` status
+    when not evaluable.
+  - 3 `required_reviewer_artefacts` (intake JSON, intake Markdown, dated
+    decision log entry) — surfaced as reasons when missing but not
+    blocking on their own; the human review IS the final step.
+  - 12 `locked_changes` entries, one per enforced rule.
+- `src/openamp_foundry/calibration/policy.py`: `load_recalibration_policy`
+  loads, validates, and exposes the policy. Raises `PolicyLoadError` on
+  missing fields, duplicate ids, unlocked rules, or missing canonical
+  prohibited actions.
+- `src/openamp_foundry/calibration/recalibration_gate.py`:
+  - `evaluate_recalibration_gate(intake_report, policy, ...)` returns a
+    `GateVerdict` with `may_recalibrate` (bool), per-rule results, audit,
+    rate-limit status, reviewer-artefact status, reasons, and summary.
+  - `write_gate_verdict_json` and `write_gate_verdict_markdown` produce
+    JSON and Markdown outputs.
+- `cli/commands/reports.py`: `_run_recalibration_gate`.
+- `cli/main.py`: `recalibration-gate` subcommand registered.
+  Exit code 0 when `may_recalibrate=true`, 3 when false, 2 on input error.
+- `Makefile`: `recalibration-gate-example` and `recalibration-gate`
+  targets added.
+- `tests/test_recalibration_gate.py`: 39 new tests covering policy
+  loader (happy + every rejection mode), gate evaluator (every minimum
+  condition), prohibited-action audit, rate-limit status, reviewer-
+  artefact status, writers, end-to-end CLI smoke. Total 1647 passing.
+- `docs/CALIBRATION_POLICY.md`: human-readable overview of the policy,
+  the gate, the permanent floor, rate limits, and how to update.
+
+Key honest limitations (must read before relying on the gate):
+
+1. The gate does NOT trigger any weight update. It only emits a verdict.
+2. A `may_recalibrate=true` verdict is a permission, not a command.
+   The decision to apply a weight change still belongs to a human
+   reviewer with a dated decision log entry.
+3. The gate evaluates cohort evidence, not pipeline calibration health.
+   Benchmark regressions are caught by `make validate-scoring`,
+   `make bench-triage`, and the selectivity benchmark — not by this
+   policy. These checks must keep running independently.
+4. The synthetic example correctly yields `may_recalibrate=false` (cohort
+   size 4 < 5, one positive control failed, all reviewer artefacts
+   missing). That is the expected outcome on tiny synthetic data and is
+   itself a useful sanity check that the gate is enforcing the cohort
+   floor honestly.
+5. The five canonical prohibited actions are duplicated from `AGENTS.md`
+   and `MISSION.md`. The validator rejects a policy file that drops any
+   of them. Any relaxation of the source documents must happen in
+   lockstep with the policy file.
+
+## v0.5.24 — Benchmark Regression Gate for CI ✓ (2026-07-04)
+
+Next-loop candidates that depend on v0.5.20:
+
+- **Recalibration engine**: implement the actual weight-update code,
+  gated by this policy. Will be safe to ship because the gate
+  pre-emptively rejects recalibration attempts that violate the floor.
+- **Per-seed recalibration audit**: extend the policy with seed-specific
+  rules once Wave 1 results are in.
+- **Policy version bump workflow**: codify the exact decision-log format
+  and add CI guard that a `policy_version` bump requires a non-empty
+  decision log entry dated within the past 30 days.
+
+## v0.5.25 — Subpackage Public API & Import Discipline ✓ (2026-07-05)
+
+Eleven subpackages previously had empty `__init__.py` files. Every
+external caller had to reach into module-level imports
+(`from openamp_foundry.scoring.activity import activity_likeness_score`)
+or, worse, guess which module owned which function. The Phase 0 exit
+criterion (`from openamp_foundry.benchmark import ...` works cleanly)
+was not met. This release curates a public API per package so callers
+can write `from openamp_foundry.benchmark import run_triage_benchmark`
+and `from openamp_foundry.scoring import activity_likeness_score` etc.
+
+Changes:
+- `src/openamp_foundry/{benchmark,scoring,selection,features,evidence,data,qc,reports,generators,analysis,utils,gates}/__init__.py` —
+  each populated with a module-level docstring, ordered re-exports of
+  every non-underscore public function/class, and an `__all__` list.
+  Total ~120 public names now reachable from package root.
+- `src/openamp_foundry/features/physchem.py`: deferred the `boman`
+  import to function scope inside `compute_features`. The top-level
+  import cycled through the new `scoring` package `__init__` →
+  `scoring.expert` → `features.physchem` on every fresh interpreter.
+  The lazy import resolves it without changing observable behaviour.
+- `tests/test_public_api_imports.py` (7 tests) — locks in the public
+  surface so accidental export removals are caught at PR time. Includes
+  regression checks for the Phase 0 exit criteria.
+
+Key honest limitations:
+
+1. The public surface is curated but not yet linted by CI. Future loops
+   can add a `ruff` or custom rule that fails PRs which introduce new
+   top-level imports of private names from these subpackages, if drift
+   becomes a problem.
+2. macrel_local functions are re-exported with the `macrel_` prefix
+   (`macrel_available`, `macrel_score_batch`, `macrel_score_one`)
+   to avoid collisions with common names in other scoring modules.
+3. No benchmark, scoring, or behavioural number changed. This is a
+   pure architectural-clarity release.
+

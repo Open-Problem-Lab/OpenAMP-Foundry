@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 import json
+import re
 from pathlib import Path
 
 
@@ -19,6 +19,11 @@ CURRENT_N_TOTAL = 191
 EXPANDED_PR_REF = "PR #110"
 ORIGINAL_DEMO_AUROC = "0.8420"
 SNAPSHOT_PATH = REPO_ROOT / "outputs" / "metrics_snapshot.json"
+WAVE05_GENERATED_OUTPUTS = [
+    REPO_ROOT / "outputs" / "wave0_5_external_predict_results.csv",
+    REPO_ROOT / "outputs" / "wave0_5_external_consensus.csv",
+    REPO_ROOT / "outputs" / "wave0_5_safety_consensus.csv",
+]
 
 # Patterns that indicate stale "current" usage (not historical context)
 _STALE_CURRENT_PATTERNS: list[str] = [
@@ -152,3 +157,79 @@ class TestDocsConsistent:
         assert "55–80%" in text or "55-80" in text or "honest" in text.lower(), (
             "WET_LAB_PROBABILITY.md missing honest correction range"
         )
+
+    def test_doc_wave05_generated_outputs_claimed_only_if_present(self):
+        """Docs must not present missing Wave 0.5 generated CSVs as committed facts."""
+        files_present = all(path.exists() for path in WAVE05_GENERATED_OUTPUTS)
+
+        metrics_text = (DOCS_DIR / "METRICS_CURRENT.md").read_text(encoding="utf-8")
+        summary_text = (DOCS_DIR / "WAVE_0_5_EXTERNAL_PREDICTOR_SUMMARY.md").read_text(
+            encoding="utf-8"
+        )
+
+        if not files_present:
+            assert "Machine-readable: `outputs/wave0_5_external_predict_results.csv`" not in metrics_text
+            assert "PENDING (60 rows, all PENDING)" not in summary_text
+            assert "Generated only after running `make wave0-5-fill-external`" in summary_text
+
+    def test_doc_wave05_historical_docs_do_not_pose_as_live_pending_state(self):
+        """Historical Wave 0.5 docs must label superseded pending steps as historical."""
+        baseline_text = (DOCS_DIR / "WAVE_0_5_BASELINE.md").read_text(encoding="utf-8")
+        scaffold_text = (DOCS_DIR / "WAVE_0_5_SCAFFOLD_DIVERSIFICATION_PLAN.md").read_text(
+            encoding="utf-8"
+        )
+        prereg_text = (DOCS_DIR / "ASSAY_PREREGISTRATION.md").read_text(encoding="utf-8")
+        checklist_text = (DOCS_DIR / "PRE_WET_LAB_CHECKLIST.md").read_text(encoding="utf-8")
+        wave1_text = (DOCS_DIR / "WAVE_1_PANEL_RECOMMENDATION.md").read_text(encoding="utf-8")
+
+        assert "Historical note: this baseline freeze predates the completed Wave 0.5 external screen." in baseline_text
+        assert "Historical baseline state only" in baseline_text
+        assert "External predictor screen (all 60 shortlist) | COMPLETE" in scaffold_text
+        assert "Wave 0.5 Gate W0.5-3 (activity consensus) | COMPLETE" in scaffold_text
+        assert "Historical placeholder; external predictor review later completed" in prereg_text
+        assert "The external predictor portion has since been completed" in checklist_text
+        assert "External predictor review for Wave 0.5 was completed after this panel recommendation was first drafted." in wave1_text
+
+    def test_doc_external_predictor_gate_distinguishes_generic_from_wave05(self):
+        """Live docs must not imply the completed Wave 0.5 screen is still wholly pending."""
+        consensus_text = (DOCS_DIR / "EXTERNAL_PREDICTOR_CONSENSUS.md").read_text(
+            encoding="utf-8"
+        )
+        decision_text = (DOCS_DIR / "DECISION_RULES.md").read_text(encoding="utf-8")
+        reviewer_text = (DOCS_DIR / "REVIEWER_SUMMARY.md").read_text(encoding="utf-8")
+        roadmap_text = (DOCS_DIR / "ROADMAP.md").read_text(encoding="utf-8")
+        expert_text = (DOCS_DIR / "EXPERT_REVIEW_PACK.md").read_text(encoding="utf-8")
+
+        assert "generic pilot-panel consensus workflow" in consensus_text
+        assert "Wave 0.5 activity consensus" in consensus_text
+        assert "three activity predictors" in consensus_text
+        assert "generic 5-tool" in consensus_text
+        assert "Wave 0.5 remains wholly pending" in consensus_text
+        assert "PENDING (see `outputs/external_predict_checklist.md`)" not in decision_text
+        assert "generic Gate 6" in decision_text
+        assert "completed Wave 0.5 external" in decision_text
+        assert "No external predictor ensemble yet" not in reviewer_text
+        assert "Wave 0.5 external screen is complete" in reviewer_text
+        assert "web submissions pending" not in roadmap_text
+        assert "Wave 0.5 complete; generic future-panel Gate 6 remains panel-specific" in roadmap_text
+        assert "CAMPR4 was excluded" in expert_text
+
+
+class TestFeatureDecompositionDocsConsistent:
+    """Guard against drift between feature decomposition docs and reality."""
+
+    def test_metrics_current_has_feature_decomposition_section(self):
+        text = (DOCS_DIR / "METRICS_CURRENT.md").read_text(encoding="utf-8")
+        assert "Feature Decomposition" in text
+        assert "hydrophobic_fraction" in text
+        assert "0.6745" in text
+
+    def test_roadmap_has_v0515_entry(self):
+        text = (DOCS_DIR / "ROADMAP.md").read_text(encoding="utf-8")
+        assert "v0.5.15" in text
+        assert "Feature Decomposition Benchmark" in text
+        assert "feature_decomp.py" in text
+
+    def test_metrics_current_last_updated_is_2026_07_03(self):
+        text = (DOCS_DIR / "METRICS_CURRENT.md").read_text(encoding="utf-8")
+        assert "2026-07-03" in text

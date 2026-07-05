@@ -1,4 +1,4 @@
-.PHONY: help demo test lint ci clean bench-leakage bench-baseline bench-hidden-active bench-cluster-split bench-expert-ablation bench-selectivity generate phase3 pilot validate-scoring validate-scoring-phase3 validate-scoring-strict external-predict pilot-confident presynth-qc gold-standard diversity synthesis-order novelty-broad external-consensus questionnaire gate-check ip-report benchmark-card wave0-5-gate-check wave0-5-novelty-audit wave0-5-novelty-audit-v2 wave0-5-panel wave0-5-evidence wave0-5-fill-external wave0-5b-generate wave0-5b-filter
+.PHONY: help demo test lint ci clean bench-leakage bench-baseline bench-hidden-active bench-cluster-split bench-expert-ablation bench-selectivity bench-feature-decomp bench-gate regenerate-all generate phase3 pilot validate-scoring validate-scoring-phase3 validate-scoring-strict external-predict pilot-confident presynth-qc gold-standard diversity synthesis-order novelty-broad external-consensus questionnaire gate-check ip-report benchmark-card wave0-5-gate-check wave0-5-novelty-audit wave0-5-novelty-audit-v2 wave0-5-panel wave0-5-evidence wave0-5-fill-external wave0-5b-generate wave0-5b-filter
 
 PYTHON := $(shell [ -f .venv/bin/python ] && echo .venv/bin/python || echo python3)
 PYTEST  := $(shell [ -f .venv/bin/pytest ] && echo .venv/bin/pytest || echo pytest)
@@ -31,6 +31,9 @@ help:
 	@echo "  make bench-cluster-split      Cluster-aware bootstrap CI (de-inflates near-duplicates)"
 	@echo "  make bench-expert-ablation    Expert composite vs ensemble ablation (honesty check)"
 	@echo "  make bench-selectivity        Within-AMP selectivity (hemolytic vs selective)"
+	@echo "  make bench-feature-decomp     Per-feature selective_vs_hemolytic decomposition"
+	@echo "  make bench-gate               Benchmark regression gate (AUROC drift check)"
+	@echo "  make regenerate-all           Run all pipeline + benchmarks and verify determinism"
 	@echo "  make bench-hidden-active      Hidden-positive recovery on mixed benchmark set"
 	@echo ""
 	@echo "  make wave0-5-gate-check     Run Wave 0.5 gates W0.5-1 through W0.5-7"
@@ -40,7 +43,11 @@ help:
 	@echo "  make wave0-5-evidence       Re-generate evidence certificates"
 	@echo "  make wave0-5b-generate      Generate Wave 0.5b candidates (safety-optimized, no aromatics)"
 	@echo "  make wave0-5b-filter        Filter Wave 0.5b shortlist (depends on wave0-5b-generate)"
-	@echo "  make test               Run full test suite (1287 tests, ≥80% coverage)"
+	@echo "  make lab-result-intake      Join a pilot panel CSV with lab result JSON files"
+	@echo "  make lab-result-intake-example  Run intake on the synthetic example data"
+	@echo "  make recalibration-gate-example  Evaluate recalibration gate on synthetic intake example"
+	@echo "  make recalibration-gate         Evaluate recalibration gate on a real intake report"
+	@echo "  make test               Run full test suite (1647 passing tests, >=80% coverage)"
 	@echo "  make coverage           Test suite with per-module coverage report"
 	@echo "  make lint               Ruff lint check on src/ tests/ scripts/"
 	@echo "  make typecheck          mypy type check on src/"
@@ -158,6 +165,16 @@ bench-selectivity:
 bench-triage:
 	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli bench triage \
 		--out outputs/triage_benchmark_report.json
+
+bench-gate:
+	PYTHONPATH=src $(PYTHON) scripts/benchmark_gate.py \
+		--baseline outputs/metrics_snapshot.json \
+		--tolerance 0.02 \
+		--out outputs/bench_gate_report.md
+
+bench-feature-decomp:
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli bench feature-decomp \
+		--out outputs/feature_decomp_report.json
 validate-scoring-strict:
 	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli validate-scoring \
 		--amp-csv examples/validation/known_amps.csv \
@@ -237,6 +254,50 @@ novelty-broad: pilot
 		--references-csv examples/known_reference/amp_curated_references.csv \
 		--out outputs/novelty_broad_report.md
 
+lab-result-intake-example:
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli calibration-intake \
+		--panel examples/lab_results_panel.csv \
+		--results-dir examples/lab_results \
+		--out-json outputs/calibration_intake_example.json \
+		--out-md outputs/calibration_intake_example.md
+
+lab-result-intake:
+	@if [ -z "$(PANEL)" ] || [ -z "$(RESULTS_DIR)" ]; then \
+		echo "Usage: make lab-result-intake PANEL=<panel.csv> RESULTS_DIR=<lab_results_dir>"; \
+		echo ""; \
+		echo "Or run the synthetic example without arguments:"; \
+		echo "  make lab-result-intake-example"; \
+		exit 1; \
+	fi
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli calibration-intake \
+		--panel "$(PANEL)" \
+		--results-dir "$(RESULTS_DIR)" \
+		--out-json outputs/calibration_intake.json \
+		--out-md outputs/calibration_intake.md
+
+recalibration-gate-example: lab-result-intake-example
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli recalibration-gate \
+		--intake-report outputs/calibration_intake_example.json \
+		--intake-report-date 2026-07-04 \
+		--out-json outputs/recalibration_gate_example.json \
+		--out-md outputs/recalibration_gate_example.md
+
+recalibration-gate:
+	@if [ -z "$(INTAKE)" ]; then \
+		echo "Usage: make recalibration-gate INTAKE=<intake.json> [DATE=<YYYY-MM-DD>] [PREV=<YYYY-MM-DD>] [L1=<float>]"; \
+		echo ""; \
+		echo "Or run the synthetic example without arguments:"; \
+		echo "  make recalibration-gate-example"; \
+		exit 1; \
+	fi
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli recalibration-gate \
+		--intake-report "$(INTAKE)" \
+		$$(if [ -n "$(DATE)" ]; then echo --intake-report-date "$(DATE)"; fi) \
+		$$(if [ -n "$(PREV)" ]; then echo --previous-recalibration-at "$(PREV)"; fi) \
+		$$(if [ -n "$(L1)" ]; then echo --weight-l1-distance "$(L1)"; fi) \
+		--out-json outputs/recalibration_gate.json \
+		--out-md outputs/recalibration_gate.md
+
 clean:
 	rm -rf outputs/*.jsonl outputs/*.md outputs/*.json outputs/evidence outputs/phase3_evidence .pytest_cache .ruff_cache
 
@@ -259,6 +320,9 @@ wave0-5-panel: wave0-5-fill-external
 
 wave0-5-evidence:
 	PYTHONPATH=src $(PYTHON) scripts/generate_wave0_5_evidence_certs.py
+
+regenerate-all:
+	PYTHONPATH=src $(PYTHON) scripts/regenerate_all.py
 
 metrics-snapshot:
 	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli bench metrics-snapshot \

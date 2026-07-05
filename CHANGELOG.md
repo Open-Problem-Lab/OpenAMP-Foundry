@@ -4,6 +4,100 @@ All notable changes to OpenAMP Foundry are documented here.
 
 ---
 
+## [Unreleased — Subpackage Public API] — 2026-07-05
+
+### v0.5.25 — Subpackage Public API & Import Discipline
+
+Eleven subpackages previously had empty `__init__.py` files, forcing every
+caller to reach into module-level imports (e.g. `from openamp_foundry.scoring.activity import
+activity_likeness_score`). This release curates a public API per package
+so `from openamp_foundry.benchmark import run_triage_benchmark` works
+cleanly, in line with the Phase 0 exit criterion.
+
+**API surface added (re-exports + `__all__` for each):**
+
+- `openamp_foundry.benchmark` — `run_triage_benchmark`, `run_strict_triage_benchmark`,
+  `run_retrospective_benchmark`, `run_cluster_split_benchmark`,
+  `run_expert_ablation_benchmark`, `run_selectivity_benchmark`,
+  `run_feature_decomposition_benchmark`, `find_near_duplicates`,
+  `find_contaminated_references`, `build_metrics_snapshot`,
+  `deterministic_split`, `cluster_by_similarity`, `cluster_split`,
+  `top_k_ids`, `recall_at_k`, `random_recall_at_k`, `enrichment_factor`,
+  `benchmark_summary`
+- `openamp_foundry.scoring` — `activity_likeness_score`, `boman_index`,
+  `boman_activity_score`, `gravy_score`, `model_disagreement`,
+  `ensemble_score`, `selection_reasons`, `known_failure_modes`,
+  `EXPERT_WEIGHTS`, `ExpertScore`, `expert_score`, `helix_hinge_analysis`,
+  `build_kmer_index`, `kmer_prior_art`, `hemolysis_risk_score`,
+  `hemolysis_safety_component`, `MacrelResult`, `macrel_available`,
+  `macrel_score_batch`, `macrel_score_one`, `levenshtein`,
+  `normalized_similarity`, `novelty_score`, `safety_score`,
+  `rich_selectivity_score`, `rich_selectivity_breakdown`,
+  `serum_stability_score`, `synthesis_feasibility_score`
+- `openamp_foundry.selection` — `greedy_diverse_select`, `rank_candidates`,
+  `select_top`, `select_pilot_panel`
+- `openamp_foundry.features` — `compute_features`, `fraction`,
+  `helix_propensity_score`, `helix_wheel_faces`, `hydrophobic_moment`,
+  `longest_repeat_run`, `max_windowed_hydrophobic_moment`,
+  `net_charge_at_ph74`, `net_charge_proxy`
+- `openamp_foundry.evidence` — `build_certificate`, `validate_json_schema`
+- `openamp_foundry.data` — `is_valid_sequence`, `load_candidates_csv`,
+  `normalize_sequence`, `load_lab_result`, `load_lab_results_dir`,
+  `summarise_lab_results`, `candidate_result_map`,
+  `summarise_candidate_outcomes`
+- `openamp_foundry.qc` — `SynthQC`, `check_sequence`, `check_panel`,
+  `generate_synthesis_order`, `write_order_csv`, `write_synthesis_checklist`
+- `openamp_foundry.reports` — `diversity_clustering_report`, `novelty_report`,
+  `scorer_consensus_report`, `synthesis_feasibility_report`,
+  `toxicity_hemolysis_risk_report`, `ConsensusResult`, `compute_consensus`,
+  `consensus_report_to_dict`, `write_consensus_report`,
+  `write_confident_panel`, `write_external_predict_checklist`,
+  `write_pilot_fasta`, `build_lab_result_report`,
+  `write_lab_result_json`, `write_lab_result_markdown`,
+  `write_pilot_csv`, `write_pilot_markdown`
+- `openamp_foundry.generators` — `mutate_sequence`,
+  `generate_single_substitution_variants`,
+  `generate_double_substitution_variants`,
+  `generate_aggregation_safe_double_variants`,
+  `generate_charge_enhanced_variants`,
+  `generate_balanced_charge_variants`, `generate_all_variants`
+- `openamp_foundry.analysis` — `levenshtein_similarity`,
+  `pairwise_similarity_matrix`, `cluster_panel`,
+  `recommend_minimal_diverse_panel`, `diversity_stats`,
+  `family_structural_warnings`
+- `openamp_foundry.utils` — `stable_json_hash`, `file_sha256`,
+  `read_json`, `write_json`, `write_jsonl`
+- `openamp_foundry.gates` — `GateResult`, `check_gate_1_auroc`
+  through `check_gate_5_interpretation`, `check_all_gates`,
+  `W05GateResult`, `check_w05_1_family_diversity` through
+  `check_w05_7_claim_safety`, `run_all_gates`
+
+**Internal change — circular-import fix in features.physchem**
+
+`compute_features` deferred its `boman` import to function scope because
+`openamp_foundry.scoring.expert` imports from this module at package
+init time, which would now cycle through the new scoring `__init__`.
+
+**Tests — 7 new, total 1682 passing (was 1675)**
+
+- `tests/test_public_api_imports.py` verifies every entry in every
+  subpackage `__all__` is actually importable from the package root;
+  guards against accidental export removal; ensures no `_`-prefixed
+  private names leak into the public surface; regression checks for
+  the Phase 0 exit criteria (`from openamp_foundry.calibration import
+  GateVerdict`, top-level benchmark + scoring imports).
+
+**Honest limitations**
+
+- The public surface is curated but not yet linted. Future loops can
+  add a CI rule that fails PRs which introduce new top-level imports
+  of private names from these subpackages, if drift becomes a problem.
+- macrel_local functions are re-exported with `macrel_` prefix
+  (`macrel_available`, `macrel_score_batch`, `macrel_score_one`)
+  to avoid colliding with common names in other scoring modules.
+
+---
+
 ## [Unreleased — Dedicated Hemolysis Risk Scorer] — 2026-07-01
 
 ### v0.5.10 — Dedicated Hemolysis Risk Scorer
@@ -235,3 +329,144 @@ improvements made before committing the ~$10k wet-lab synthesis budget.
 - Ensemble scoring with configurable weights
 - JSONL output with per-candidate `selected` field
 - `pipeline.yaml` and `phase3.yaml` configs
+
+---
+
+## [Unreleased — Calibration Intake Module] — 2026-07-04
+
+### v0.5.19 — Calibration Intake Module
+
+- **`openamp_foundry/calibration/intake.py`**: new module
+  - `build_calibration_intake_report(panel_csv, results_dir)` joins a pilot
+    panel CSV (computational predictions) with a directory of validated lab
+    result JSON files (experimental actuals) on `candidate_id`.
+  - `write_calibration_intake_json` and `write_calibration_intake_markdown`
+    produce machine-readable and human-readable review artifacts.
+  - **Honest minimum-cohort-size gate (`MIN_COHORT_SIZE=5`)**: aggregate
+    cohort metrics are NOT reported when `n < 5`. Below the gate the metric
+    is marked `insufficient_data: True` and no point estimate is produced.
+    This prevents small-sample theater.
+  - Two pilot cohort metrics: `activity_vs_active_mic` (MIC ≤ 32 µg/mL active)
+    and `rich_selectivity_vs_high_hemolysis` (hemolysis ≥ 10% high-risk).
+  - Per-candidate join rows expose every prediction column plus aggregated
+    actual outcomes. Control failures and orphan lab results surfaced.
+- **`cli/commands/reports.py`**: new `_run_calibration_intake` command.
+- **`cli/main.py`**: new `calibration-intake` subcommand registered.
+- **`examples/lab_results/`**: 5 SYNTHETIC JSON files demonstrating the
+  workflow (active hit, inactive candidate, low hemolysis, high hemolysis,
+  control failure). All files include a `disclaimer` field that explicitly
+  states they are synthetic examples. README in the directory repeats the
+  warning prominently.
+- **`examples/lab_results_panel.csv`**: 8-candidate synthetic pilot panel.
+- **`tests/test_calibration_intake.py`**: 29 tests covering empty panels,
+  missing columns, orphan detection, control failure surfacing, cohort
+  metric gating (below/equal/above `MIN_COHORT_SIZE`), hemolysis direction
+  logic, synthetic-example schema validation, threshold constants.
+- **`Makefile`**: `lab-result-intake` and `lab-result-intake-example`
+  targets added. Test-count help text updated.
+- **Total tests:** 1614 passing (was 1585).
+
+#### Honest limitations
+
+- This module does **NOT** trigger recalibration. It is the intake valve that
+  produces a review artifact for a separate, human-reviewed recalibration
+  workflow (see `docs/DECISION_RULES.md` and `docs/WAVE2_PLAN.md`).
+- Cohort metrics are descriptive only; they do not validate the pipeline, do
+  not control for selection bias from the pre-registered shortlist, and must
+  not be used to rewrite scoring weights after the fact.
+- Synthetic example data is clearly labeled in every JSON file's `disclaimer`
+  field and in `examples/lab_results/README.md`. It exists solely to exercise
+  the intake workflow end-to-end. When real validated lab results arrive,
+  replace the example directory — the pipeline itself does not change.
+
+---
+
+## [Unreleased — Recalibration Policy + Gate] — 2026-07-04
+
+### v0.5.20 — Recalibration Policy + Gate
+
+Pre-registered, machine-readable policy that gates any pipeline recalibration.
+This is the missing piece between v0.5.19 calibration-intake (descriptive
+join) and a future recalibration engine: the gate now answers the binary
+question "may recalibration proceed from this intake report?" with a
+verdict that no agent can silently bypass.
+
+**New policy contract — `configs/recalibration_policy.yaml`**
+
+- `minimum_conditions` (7 rules): MIN_COHORT_SIZE, MIN_POSITIVES_IN_COHORT,
+  MIN_NEGATIVES_IN_COHORT, POSITIVE_CONTROLS_ALL_PASS,
+  NEGATIVE_CONTROLS_ALL_PASS, NO_ORPHAN_LAB_RESULTS, COHORT_METRICS_AVAILABLE.
+- `prohibited_actions` (5 permanent floors): NO_TOXICITY_RELAXATION,
+  NO_HEMOLYSIS_RELAXATION, NO_NOVELTY_RELAXATION,
+  NO_DANGEROUS_PATHGEN_OPTIMIZATION, NO_POST_HOC_SUCCESS_REDEFINITION.
+- `rate_limits` (2 rules): WEIGHT_CHANGE_L1_BUDGET (0.10), COOLDOWN_DAYS (14).
+- `required_reviewer_artefacts` (3 artefacts): intake JSON, intake
+  Markdown, dated decision log entry.
+- `locked_changes` records the lock date for every enforced rule. The
+  validator rejects a policy file that lists an enforced rule without a
+  matching `locked_changes` entry.
+
+**New modules**
+
+- `openamp_foundry/calibration/policy.py`: `load_recalibration_policy`
+  parses, validates, and exposes the policy. Removes or relocations of
+  any canonical prohibited action cause `PolicyLoadError` at load time.
+- `openamp_foundry/calibration/recalibration_gate.py`:
+  `evaluate_recalibration_gate` consumes an intake report + a loaded
+  policy and returns a `GateVerdict`. Writes JSON and Markdown via
+  `write_gate_verdict_json` and `write_gate_verdict_markdown`.
+- `openamp_foundry/cli/commands/reports.py`: `_run_recalibration_gate`.
+- `cli/main.py`: `recalibration-gate` subcommand registered.
+  Exit code 0 when `may_recalibrate=true`, 3 when false, 2 on input error.
+
+**Makefile targets**
+
+- `recalibration-gate-example`: runs the gate on the synthetic intake
+  report. Expect exit code 3 (cohort size too small, one positive
+  control failed, all required reviewer artefacts missing).
+- `recalibration-gate INTAKE=... [DATE=YYYY-MM-DD] [PREV=YYYY-MM-DD] [L1=float]`
+  for real intake reports.
+
+**Tests — 39 new, total 1647 passing (was 1614)**
+
+- `tests/test_recalibration_gate.py` covers:
+  - policy loader happy path + every rejection mode (missing fields,
+    duplicate ids, unlocked rules, missing canonical prohibited
+    actions, missing locked_changes entries, bad types);
+  - gate evaluator with synthetic intake reports for every minimum
+    condition (cohort size, positives, negatives, controls, orphans,
+    insufficient metrics);
+  - prohibited-action audit always in force;
+  - rate-limit status (unknown / ok / exceeded for cooldown + L1 budget);
+  - reviewer-artefact status (missing / present based on disk);
+  - JSON + Markdown writers produce non-empty, schema-valid output;
+  - end-to-end smoke test of the CLI (exit code 3 on synthetic example).
+
+**Documentation**
+
+- `docs/CALIBRATION_POLICY.md` (new): explains the policy, the gate, the
+  prohibited-action floor, the rate limits, how to update the policy,
+  and how the policy fits the wet-lab compression roadmap.
+- `docs/ARCHITECTURE.md`: links the calibration package into the
+  wet-lab compression loop.
+- `docs/PLAN.md`: marks Phase 5 (active-learning) as gated by this policy.
+- `docs/ROADMAP.md`: new v0.5.20 milestone entry.
+- `docs/METRICS_CURRENT.md`: new entry in the change log.
+
+**Honest limitations (must read before relying on the gate)**
+
+- The gate **does NOT trigger any weight update**. It only emits a verdict.
+- A `may_recalibrate=true` verdict is a **permission**, not a command.
+  The decision to apply a weight change still belongs to a human reviewer
+  with a dated decision log entry (`docs/DECISION_LOG_<date>.md`).
+- The gate evaluates **cohort evidence**, not pipeline calibration
+  health. Benchmark regressions are caught by `make validate-scoring`,
+  `make bench-triage`, and the selectivity benchmark — not by this
+  policy. These checks must keep running independently.
+- The synthetic example correctly yields `may_recalibrate=false`. That
+  is the expected outcome on tiny synthetic data and is itself a
+  useful sanity check that the gate is enforcing the cohort floor.
+- The five canonical prohibited actions are duplicated from
+  `AGENTS.md` and `MISSION.md`. The validator rejects a policy file
+  that drops any of them; the human source documents must be updated
+  in lockstep before the policy file can be edited.
