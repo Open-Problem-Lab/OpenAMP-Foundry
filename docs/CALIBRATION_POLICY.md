@@ -184,7 +184,19 @@ If real wet-lab data justifies a policy change:
    That change is not allowed.
 
 The policy validator (`openamp_foundry.calibration.policy`) enforces
-steps 5–7 mechanically. The CI gate
+single-file policy integrity. The version guard
+(`openamp_foundry.calibration.policy_version`) compares current and previous
+policy files and fails if a substantive edit lacks a version bump, mutates prior
+`locked_changes`, or lacks a fresh non-empty decision log. Run:
+
+```bash
+python -m openamp_foundry.cli policy-version-check \
+  --current-policy configs/recalibration_policy.yaml \
+  --previous-policy path/to/previous/recalibration_policy.yaml \
+  --decision-log-dir docs
+```
+
+The CI gate
 (`tests/test_recalibration_gate.py::test_canonical_prohibited_actions_match_policy`)
 enforces the canonical prohibited-action list.
 
@@ -197,7 +209,8 @@ enforces the canonical prohibited-action list.
 | Lab-result schema           | Done (v0.5.18)| `schemas/lab_result.schema.json`            |
 | Lab-result intake report    | Done (v0.5.19)| `openamp_foundry.calibration.intake`        |
 | **Recalibration policy**    | **Done (v0.5.20)** | `configs/recalibration_policy.yaml` + `openamp_foundry.calibration.policy` + `openamp_foundry.calibration.recalibration_gate` |
-| Recalibration *engine*      | Pending       | Future loop, after real lab data arrives     |
+| Policy version guard        | Done (v0.5.40) | `openamp_foundry.calibration.policy_version` |
+| Recalibration *engine*      | Done (v0.5.36) | Proposes bounded deltas only; does not apply changes |
 | Active-learning selection   | Pending       | Future loop, depends on recalibration engine |
 
 The recalibration policy is the **gate that protects** the

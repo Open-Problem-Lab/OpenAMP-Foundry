@@ -795,6 +795,28 @@ Next-loop candidates that depend on v0.5.20:
   and add CI guard that a `policy_version` bump requires a non-empty
   decision log entry dated within the past 30 days.
 
+## v0.5.40 — Recalibration Policy Version Guard ✓ (2026-07-06)
+
+The recalibration policy could be edited without comparing it to the previous
+policy file. That left a governance gap: a future agent could change cohort
+floors, rate limits, or locked changes while still passing the single-file
+policy loader.
+
+Changes:
+- `openamp_foundry.calibration.policy_version`: compares current vs previous
+  policy files and fails substantive edits unless `policy_version` increases.
+- Prior `locked_changes` must remain present and byte-equivalent as parsed
+  policy objects.
+- A non-empty `docs/DECISION_LOG_YYYY-MM-DD.md` dated within 30 days is required
+  for policy edits.
+- CLI: `openamp-foundry policy-version-check`
+- Makefile target: `make policy-version-check PREVIOUS=<previous_policy.yaml>`
+- Decision-log template: `docs/DECISION_LOG_TEMPLATE.md`
+
+Honest limitation: this guard compares two local policy files. CI or a reviewer
+must supply the previous policy from the base branch; the guard does not fetch
+Git history by itself.
+
 ## v0.5.25 — Subpackage Public API & Import Discipline ✓ (2026-07-05)
 
 Eleven subpackages previously had empty `__init__.py` files. Every
@@ -941,3 +963,23 @@ Honest finding:
   AMP-vs-decoy AUROC remains charge-inflated.
 - The next benchmark improvement should create or curate a truly charge-balanced
   negative set instead of treating this benchmark as a win.
+
+## v0.5.40 — Recalibration Policy Version Guard ✓ (2026-07-06)
+
+The recalibration policy is now executable-governed instead of doc-governed only.
+Silent policy edits could otherwise weaken wet-lab feedback safeguards without a
+review trail.
+
+- `calibration/policy_version.py`: compares current vs previous policy files and
+  rejects substantive edits that do not bump `policy_version`.
+- CLI: `openamp-foundry policy-version-check`
+- Makefile target: `make policy-version-check`
+- `docs/DECISION_LOG_TEMPLATE.md`: required review-log shape for policy changes.
+- `src/openamp_foundry/calibration/AGENTS.md`: calibration module handoff map for
+  future agents.
+- Tests cover no-op edits, missing/invalid version bumps, locked-change mutation,
+  missing decision logs, stale logs, and successful reviewed policy updates.
+
+Honest limitation:
+- The guard does not fetch Git history. Callers or CI must provide the previous
+  policy file explicitly. It is a permission layer, not a recalibration engine.
