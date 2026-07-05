@@ -8,6 +8,13 @@ import json
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "src"
+for path in (ROOT, SRC):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
+
 
 def _deep_get(d: dict, path: str) -> object:
     """Resolve a dotted path like 'a.b.c' in a nested dict."""

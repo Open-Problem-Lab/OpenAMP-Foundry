@@ -5,7 +5,8 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > **Purpose:** One authoritative table of current pipeline metrics. If any doc disagrees
 > with this file, this file wins. Updated whenever benchmark/benchmark config changes.
 >
-> **Last updated:** 2026-07-05 (per-family benchmark breakdown by structural class — v0.5.37)
+> **Last updated:** 2026-07-06 (charge-matched decoy benchmark — v0.5.38)
+> **New in v0.5.38:** Added charge-matched decoy benchmark to test whether the ensemble retains signal after eliminating the trivial charge-density gap between positives and decoys. Result: the charge-density baseline collapses to random (0.5000) while the ensemble stays at 0.7792. See `outputs/benchmark_charge_matched.json`.
 > **New in v0.5.35:** Cross-dataset generalization benchmark: DRAMP AMPs (database-independent test) achieve AUROC 0.7803 vs baseline 0.7832 (Δ=-0.0029). Pipeline generalises strongly — heuristic features are source-independent, not memorizing APD6/UniProt biases. Phase 1 exit criterion #5 (cross-dataset results) satisfied. See `outputs/cross_dataset_benchmark.json`.
 > **New in v0.5.37:** Per-family benchmark breakdown: stratifies 500 AMPs by structural class. Pipeline is charge-dominated — highly_cationic AUROC 0.9583 vs proline_rich AUROC 0.5861 (Δ=0.37). Classes with weak discrimination flagged as blind spots. See `outputs/benchmark_per_family.json`.
 > **New in v0.5.33:** Expert ablation re-run on expanded 500-AMP benchmark (n=1000). Two components reclassified: synthesis was an anti-signal artifact on n=191 (now near-zero 0.4968); boman_activity more strongly anti-AMP (0.3291). selectivity_proxy weaker on diverse set (0.6702 vs 0.7729). Activity remains dominant signal (0.7969). Expert composite delta widens to −0.0935 — expected tradeoff for selectivity-aware scoring.
@@ -165,9 +166,42 @@ A benchmark that tests the pipeline's actual objective (finding SAFE, novel,
 synthesizable AMPs) would more honestly assess the ensemble's contributions.
 
 **Recommendation for benchmarks that test the pipeline's actual value:**
-- Use charge-matched decoys (eliminate the trivial charge signal)
+- Use charge-matched decoys (now implemented in `make bench-charge-matched`)
 - Test safe-AMP detection (active AND non-hemolytic vs hemolytic AMPs)
 - Test multi-objective ranking (does the ensemble rank safe, novel, synthesizable AMPs above toxic or trivially known ones?)
+
+### Charge-Matched Decoy Benchmark
+
+> Added 2026-07-06 (v0.5.38). This benchmark greedily matches each AMP to an
+> unused decoy with nearest charge density, then compares the ensemble against
+> charge density on that adversarial set.
+>
+> Run: `make bench-charge-matched`
+
+Purpose: test the exact failure mode exposed by the easy baseline benchmark.
+If the ensemble only works because AMPs are more cationic than generic decoys,
+it should lose most of its signal once that gap is removed.
+
+Primary output:
+- `outputs/benchmark_charge_matched.json`
+
+Observed result:
+- `mean_abs_charge_density_delta = 0.0000`
+- `charge_density_auroc = 0.5000`
+- `pipeline_auroc = 0.7792`
+- `pipeline_minus_charge_density = +0.2792`
+
+Interpretation:
+- The earlier easy-baseline result was real but incomplete: charge density is a
+  stronger raw discriminator than the ensemble on the unconstrained benchmark,
+  yet once charge density is exactly matched, charge density itself loses all
+  signal while the ensemble does not.
+- Confirmed fact: the current 500-sequence benchmark is not *purely* charge-density driven.
+- Remaining uncertainty: this still does not prove rich order-aware biology.
+  Other composition features may still be doing most of the work.
+
+This benchmark is informational, not a regression gate. Its job is honesty:
+separate genuine ensemble discrimination from the trivial cationic prior.
 
 ### Order-Dependent Features Benchmark (which features survive scrambling?)
 

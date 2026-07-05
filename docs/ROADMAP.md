@@ -1,5 +1,28 @@
 # Roadmap
 
+## v0.5.38 — Charge-Matched Decoy Honesty Benchmark ✓ (2026-07-06)
+
+The easy-baseline benchmark already showed that charge density alone beats the
+ensemble on raw AMP-vs-decoy AUROC. That made one missing benchmark load-bearing:
+an adversarial test that removes the charge-density gap itself.
+
+Changes:
+- Added `src/openamp_foundry/benchmark/charge_matched.py` with deterministic
+  greedy matching of each AMP to one unused decoy with nearest charge density.
+- Added `scripts/benchmark_charge_matched.py` and `make bench-charge-matched`.
+- Added snapshot/test coverage so the benchmark becomes part of the repo's
+  machine-readable current-state evidence.
+
+Why it matters:
+- Raw 500-AMP discrimination can still be materially charge-inflated.
+- This benchmark attacks the exact trivial prior directly instead of only
+  describing it in prose.
+- Future scoring changes can now be judged on whether they add discrimination
+  after charge matching, not just on ordinary AMP-vs-decoy AUROC.
+- Actual result on current benchmark: charge density collapses to AUROC 0.5000
+  after exact matching, while the ensemble remains at 0.7792. So the pipeline's
+  broad discrimination is not reducible to charge density alone.
+
 ## v0.1 — Safe starter ✓
 
 - toy data;
@@ -876,4 +899,3 @@ stratifies by structural class to reveal blind spots.
 - METRICS_CURRENT.md updated with full table and implications for candidate
   selection: diversity selection should deliberately compensate for the
   pipeline's helic/charge bias.
-

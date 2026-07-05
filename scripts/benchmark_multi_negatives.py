@@ -14,7 +14,14 @@ import random
 import sys
 from pathlib import Path
 
-from openamp_foundry.benchmark.retrospective import run_retrospective_benchmark
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "src"
+for path in (ROOT, SRC):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
+
+from openamp_foundry.benchmark.retrospective import run_retrospective_benchmark  # noqa: E402
 
 KNOWN_AMPS = "examples/validation/known_amps.csv"
 CONFIG = "configs/pipeline.yaml"
