@@ -37,6 +37,29 @@ def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _candidate_identity_rows(
+    panel_rows: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    identities: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in panel_rows:
+        candidate_id = row.get("candidate_id", "").strip()
+        sequence = row.get("sequence", "").strip().upper()
+        if not candidate_id or not sequence:
+            continue
+        if candidate_id in seen:
+            raise ValueError(f"Duplicate candidate_id in panel CSV: {candidate_id}")
+        seen.add(candidate_id)
+        identities.append(
+            {
+                "candidate_id": candidate_id,
+                "sequence_sha256": _sha256_text(sequence),
+                "sequence_length": len(sequence),
+            }
+        )
+    return identities
+
+
 def _read_panel_rows(panel_csv: Path) -> list[dict[str, str]]:
     with panel_csv.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -57,25 +80,6 @@ def _read_panel_rows(panel_csv: Path) -> list[dict[str, str]]:
     return rows
 
 
-def _candidate_identity_rows(panel_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
-    identities: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for row in panel_rows:
-        candidate_id = row.get("candidate_id", "").strip()
-        sequence = row.get("sequence", "").strip().upper()
-        if not candidate_id or not sequence:
-            continue
-        if candidate_id in seen:
-            raise ValueError(f"Duplicate candidate_id in panel CSV: {candidate_id}")
-        seen.add(candidate_id)
-        identities.append({
-            "candidate_id": candidate_id,
-            "sequence_sha256": _sha256_text(sequence),
-            "sequence_length": len(sequence),
-        })
-    return identities
-
-
 def _synthesis_order_digest(panel_rows: list[dict[str, str]]) -> str:
     """Hash the ordered candidate identity list, not vendor instructions."""
     lines = []
@@ -87,7 +91,9 @@ def _synthesis_order_digest(panel_rows: list[dict[str, str]]) -> str:
     return _sha256_text("\n".join(lines) + "\n")
 
 
-def _protocol_doc_paths(protocol_docs: list[str] | None) -> tuple[list[Path], list[str]]:
+def _protocol_doc_paths(
+    protocol_docs: list[str] | None,
+) -> tuple[list[Path], list[str]]:
     docs = DEFAULT_PROTOCOL_DOCS if protocol_docs is None else protocol_docs
     if not docs:
         return [], ["at least one safe review reference document is required"]
@@ -114,18 +120,26 @@ def verify_batch_pack(zip_path: str | Path) -> dict[str, Any]:
         custody = json.loads(zf.read("chain_of_custody.json").decode("utf-8"))
         manifest = json.loads(zf.read("MANIFEST.json").decode("utf-8"))
 
-        panel_hash_ok = _sha256_bytes(panel_bytes) == custody.get("panel_csv_sha256")
+        panel_hash_ok = _sha256_bytes(panel_bytes) == custody.get(
+            "panel_csv_sha256"
+        )
 
         panel_text = panel_bytes.decode("utf-8")
         panel_rows = list(csv.DictReader(panel_text.splitlines()))
         expected_identities = _candidate_identity_rows(panel_rows)
         identities_ok = expected_identities == custody.get("candidate_identities", [])
-        order_ok = _synthesis_order_digest(panel_rows) == custody.get("synthesis_order_sha256")
+        order_ok = _synthesis_order_digest(panel_rows) == custody.get(
+            "synthesis_order_sha256"
+        )
 
         evidence_ok = True
         evidence_hashes = custody.get("evidence_certificate_sha256", {})
         for archive_name, expected_hash in evidence_hashes.items():
-            if archive_name not in names or _sha256_bytes(zf.read(archive_name)) != expected_hash:
+            if archive_name not in names:
+                evidence_ok = False
+                break
+            evidence_hash = _sha256_bytes(zf.read(archive_name))
+            if evidence_hash != expected_hash:
                 evidence_ok = False
                 break
 
@@ -196,9 +210,9 @@ def build_batch_pack(
             "missing_evidence": missing_evidence,
         }
     if extra_evidence:
+        error = "Evidence directory contains certificate(s) not present in panel CSV: "
         return {
-            "error": "Evidence directory contains certificate(s) not present in panel CSV: "
-            + ", ".join(extra_evidence),
+            "error": error + ", ".join(extra_evidence),
             "extra_evidence": extra_evidence,
         }
 
@@ -228,11 +242,9 @@ def build_batch_pack(
 
     out_p.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out_p, "w", zipfile.ZIP_DEFLATED) as zf:
-        # 1. Panel CSV
         zf.writestr("panel.csv", panel_data)
         manifest["panel_csv_size"] = len(panel_data)
 
-        # 2. Evidence certificates, exact-match to panel candidate IDs
         evidence_hashes: dict[str, str] = {}
         for candidate_id in sorted(panel_ids):
             f = evidence_files[candidate_id]
@@ -244,7 +256,6 @@ def build_batch_pack(
         manifest["evidence_count"] = len(evidence_hashes)
         manifest["evidence_certificate_sha256"] = evidence_hashes
 
-        # 3. Safe review references. These are not operational wet-lab protocols.
         protocol_lines = [
             "# Lab Batch Pack — Safe Review References",
             "",
@@ -257,7 +268,6 @@ def build_batch_pack(
             manifest["included_protocols"].append(str(doc_p))
         zf.writestr("protocols/README.md", "\n".join(protocol_lines) + "\n")
 
-        # 4. Controls manifest
         ctrl = controls or [
             {
                 "candidate_id": "SEED-001_VAR_064",
@@ -270,7 +280,6 @@ def build_batch_pack(
         zf.writestr("controls_manifest.json", json.dumps(ctrl, indent=2))
         manifest["controls"] = ctrl
 
-        # 5. Data return template (empty JSON per schema)
         if schema_p.exists():
             template: dict[str, Any] = {
                 "result_id": "REPLACE_WITH_UUID",
@@ -290,7 +299,6 @@ def build_batch_pack(
             zf.writestr("data_return_template.json", json.dumps(template, indent=2))
             manifest["data_return_template"] = str(schema_p)
 
-        # 6. Chain-of-custody identity hashes
         custody = {
             "chain_of_custody_version": "1.1",
             "scope": (
@@ -313,7 +321,6 @@ def build_batch_pack(
         zf.writestr("chain_of_custody.json", json.dumps(custody, indent=2))
         zf.writestr("MANIFEST.json", json.dumps(manifest, indent=2))
 
-        # 7. Batch README
         readme = [
             "# OpenAMP Foundry — Lab Batch Pack",
             "",
@@ -364,12 +371,17 @@ def build_batch_pack(
 
 def main() -> int:
     import argparse
+
     parser = argparse.ArgumentParser(description="Build lab batch pack zip")
     parser.add_argument("--panel-csv", default="outputs/wave1_final_panel.csv")
     parser.add_argument("--evidence-dir", default="outputs/evidence_wave0_5")
     parser.add_argument("--out", default="outputs/lab_batch_pack.zip")
     parser.add_argument("--manifest-out", default=None, help="JSON manifest path")
-    parser.add_argument("--verify-pack", default=None, help="Verify an existing lab batch pack zip")
+    parser.add_argument(
+        "--verify-pack",
+        default=None,
+        help="Verify an existing lab batch pack zip",
+    )
     args = parser.parse_args()
 
     if args.verify_pack:
