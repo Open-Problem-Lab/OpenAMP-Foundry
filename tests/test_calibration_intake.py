@@ -31,6 +31,8 @@ from openamp_foundry.calibration.intake import (
     MIC_ACTIVE_CUTOFF_UG_ML,
     MIN_COHORT_SIZE,
     build_calibration_intake_report,
+    negative_archive_rows_from_report,
+    write_negative_archive_from_intake,
     write_calibration_intake_json,
     write_calibration_intake_markdown,
 )
@@ -552,6 +554,109 @@ class TestDisclaimer:
         assert "NOT proof of efficacy" in d
         assert "recalibration" in d.lower()
         assert "selection rule" in d
+
+
+class TestNegativeArchive:
+    def test_negative_archive_rows_capture_inactive_toxic_and_control_failures(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "pilot_rank": "1", "candidate_id": "CAND-INACTIVE", "sequence": "AAAKKKLLL",
+                    "length": "9", "seed": "SEED-A", "ensemble": "0.80", "activity": "0.82",
+                    "boman_activity": "0.70", "disagreement": "0.03", "safety": "0.91",
+                    "synthesis": "0.87", "novelty": "0.66", "serum_stability": "0.55",
+                    "selectivity_proxy": "0.61", "rich_selectivity": "0.73", "pilot_priority": "0.79",
+                    "amphipathic_score": "1.2", "charge_ph74": "4.0",
+                },
+                {
+                    "pilot_rank": "2", "candidate_id": "CAND-TOXIC", "sequence": "RRRLLLKKK",
+                    "length": "9", "seed": "SEED-B", "ensemble": "0.78", "activity": "0.77",
+                    "boman_activity": "0.69", "disagreement": "0.04", "safety": "0.64",
+                    "synthesis": "0.86", "novelty": "0.62", "serum_stability": "0.53",
+                    "selectivity_proxy": "0.52", "rich_selectivity": "0.21", "pilot_priority": "0.70",
+                    "amphipathic_score": "1.3", "charge_ph74": "5.0",
+                },
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                result_id="RES-INACTIVE",
+                candidate_id="CAND-INACTIVE",
+                result_value=64.0,
+                result_qualitative="inactive",
+            ),
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                result_id="RES-TOXIC",
+                candidate_id="CAND-TOXIC",
+                assay_type="hemolysis_RBC",
+                result_value=35.0,
+                result_unit="%",
+                result_qualitative="toxic",
+                positive_control_passed=False,
+            ),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+        rows = negative_archive_rows_from_report(
+            report,
+            pipeline_version="v0.test",
+            source_batch="wave-test",
+            entry_date="2026-07-06",
+        )
+        reasons = {(row.candidate_id, row.reason_category) for row in rows}
+        assert ("CAND-INACTIVE", "lab_inactive") in reasons
+        assert ("CAND-TOXIC", "lab_toxic") in reasons
+        assert ("CAND-TOXIC", "control_failure") in reasons
+
+    def test_write_negative_archive_from_intake_appends_csv(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        archive = tmp_path / "negative_result_archive.csv"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "pilot_rank": "1", "candidate_id": "CAND-X", "sequence": "AAAKKKLLL",
+                    "length": "9", "seed": "SEED-X", "ensemble": "0.80", "activity": "0.82",
+                    "boman_activity": "0.70", "disagreement": "0.03", "safety": "0.91",
+                    "synthesis": "0.87", "novelty": "0.66", "serum_stability": "0.55",
+                    "selectivity_proxy": "0.61", "rich_selectivity": "0.73", "pilot_priority": "0.79",
+                    "amphipathic_score": "1.2", "charge_ph74": "4.0",
+                },
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                result_id="RES-X",
+                candidate_id="CAND-X",
+                result_value=128.0,
+                result_qualitative="inactive",
+            ),
+        )
+        report = build_calibration_intake_report(panel, results)
+        written = write_negative_archive_from_intake(
+            report,
+            archive,
+            pipeline_version="v0.test",
+            source_batch="wave-test",
+            entry_date="2026-07-06",
+        )
+        assert written == 1
+        rows = list(csv.DictReader(archive.open()))
+        assert len(rows) == 1
+        assert rows[0]["entry_id"] == "1"
+        assert rows[0]["candidate_id"] == "CAND-X"
+        assert rows[0]["reason_category"] == "lab_inactive"
 
 
 class TestExampleData:

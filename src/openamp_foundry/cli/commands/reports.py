@@ -626,6 +626,7 @@ def _run_calibration_intake(args: argparse.Namespace) -> int:
     """Build a calibration intake report from a pilot panel CSV + lab results."""
     from openamp_foundry.calibration.intake import (
         build_calibration_intake_report,
+        write_negative_archive_from_intake,
         write_calibration_intake_json,
         write_calibration_intake_markdown,
     )
@@ -634,6 +635,14 @@ def _run_calibration_intake(args: argparse.Namespace) -> int:
     write_calibration_intake_json(report, args.out_json)
     if args.out_md:
         write_calibration_intake_markdown(report, args.out_md)
+    n_negative_archive_rows = 0
+    if args.negative_archive:
+        n_negative_archive_rows = write_negative_archive_from_intake(
+            report,
+            args.negative_archive,
+            pipeline_version=args.pipeline_version,
+            source_batch=args.source_batch,
+        )
 
     cohort_summary = {}
     for key, metric in report["cohort_metrics"].items():
@@ -650,9 +659,11 @@ def _run_calibration_intake(args: argparse.Namespace) -> int:
                 "n_lab_results": report["n_lab_results"],
                 "n_matched_candidates": report["n_matched_candidates"],
                 "n_orphan_lab_results": report["n_orphan_lab_results"],
+                "n_negative_archive_rows": n_negative_archive_rows,
                 "cohort_metrics": cohort_summary,
                 "out_json": args.out_json,
                 "out_md": args.out_md,
+                "negative_archive": args.negative_archive,
                 "disclaimer_excerpt": report["report_disclaimer"][:80] + "...",
             },
             indent=2,
@@ -810,8 +821,6 @@ def _run_recalibration_engine(args: argparse.Namespace) -> int:
         BudgetExceededError,
         PolicyViolationError,
         compute_weight_update,
-        write_weight_update_proposal_json,
-        write_weight_update_proposal_markdown,
     )
     from openamp_foundry.calibration.recalibration_gate import GateVerdict
 
@@ -899,7 +908,7 @@ def _run_recalibration_engine(args: argparse.Namespace) -> int:
         notes = prop_section.get("notes", [])
         print(f"  Notes: {', '.join(notes) if notes else '(none)'}")
         print(f"{'=' * 60}")
-        print(f"DRY RUN — no files written, no weight changes applied.")
+        print("DRY RUN — no files written, no weight changes applied.")
     else:
         if args.out_json:
             write_recalibration_report_json(report, args.out_json)

@@ -738,6 +738,21 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         help="Optional output path for markdown calibration intake summary.",
     )
+    calibration_intake.add_argument(
+        "--negative-archive",
+        required=False,
+        help="Optional append-only CSV path for inactive/toxic/control-failed rows.",
+    )
+    calibration_intake.add_argument(
+        "--pipeline-version",
+        default="unknown",
+        help="Pipeline version recorded when --negative-archive is used.",
+    )
+    calibration_intake.add_argument(
+        "--source-batch",
+        default="unknown",
+        help="Source batch recorded when --negative-archive is used.",
+    )
 
     recalibration_gate = sub.add_parser(
         "recalibration-gate",

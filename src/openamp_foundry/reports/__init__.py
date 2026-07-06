@@ -27,6 +27,11 @@ from openamp_foundry.reports.lab_result_report import (
     write_lab_result_json,
     write_lab_result_markdown,
 )
+from openamp_foundry.reports.negative_archive import (
+    NegativeArchiveRow,
+    append_negative_archive_rows,
+    read_negative_archive,
+)
 from openamp_foundry.reports.pilot_panel import (
     write_pilot_csv,
     write_pilot_markdown,
@@ -58,6 +63,10 @@ __all__ = [
     "build_lab_result_report",
     "write_lab_result_json",
     "write_lab_result_markdown",
+    # negative_archive
+    "NegativeArchiveRow",
+    "append_negative_archive_rows",
+    "read_negative_archive",
     # pilot_panel
     "write_pilot_csv",
     "write_pilot_markdown",

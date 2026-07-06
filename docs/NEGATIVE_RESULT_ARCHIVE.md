@@ -79,7 +79,8 @@ entry_id,date,candidate_id,sequence,reason_category,reason_detail,pipeline_versi
 2. **Selected but untested**: when a candidate is removed from an assay queue
    (e.g., budget cut, expired synthesis quote), a human adds the entry.
 3. **Lab result received**: when `calibration-intake` processes a lab result with
-   MIC > cutoff or hemolysis > threshold, it appends a row automatically.
+   MIC > cutoff or hemolysis > threshold, it can append a row when invoked with
+   `--negative-archive`.
    A human may add additional `reviewer_notes`.
 4. **Control failure**: recorded automatically when the gate detects a failed
    control. The entry links to the full batch by `source_batch`.
@@ -98,7 +99,7 @@ The archive CSV lives at `outputs/negative_result_archive.csv` and is:
 - **Read by**: `calibration-intake` (joins against known negatives for cohort metrics),
   recalibration gate (checks for recent negative-lab-history patterns).
 - **Written by**: `filter_wave*` scripts (auto-append pre-selection rejects),
-  `calibration-intake` (auto-append lab-tested inactives/toxic),
+  `calibration-intake --negative-archive` (append lab-tested inactives/toxic/control failures),
   human operators (manual entries via form or YAML-to-CSV conversion).
 - **Validated by**: `scripts/validate_negative_archive.py` (if it exists) —
   checks schema conformance, missing required fields, valid reason_category values.

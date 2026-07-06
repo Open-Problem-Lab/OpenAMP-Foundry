@@ -1,5 +1,23 @@
 # Roadmap
 
+## v0.5.51 — Negative-Archive Intake Wiring ✓ (2026-07-06)
+
+The repo claimed negative-result archive automation existed, but only the
+template existed. This release closes the truth gap by wiring `calibration-intake`
+to append negative evidence rows when explicitly asked.
+
+Changes:
+- `src/openamp_foundry/reports/negative_archive.py` — append-only CSV helper with
+  monotonic `entry_id`, fixed field order, and reason-category validation.
+- `src/openamp_foundry/calibration/intake.py` — derives archive rows for
+  `lab_inactive`, `lab_toxic`, and `control_failure`; adds
+  `write_negative_archive_from_intake()`.
+- `openamp_foundry.cli calibration-intake` — new optional
+  `--negative-archive`, `--pipeline-version`, and `--source-batch` flags.
+- `README.md`, `docs/NEGATIVE_RESULT_ARCHIVE.md`, and metrics docs updated so
+  docs now match implemented behavior.
+- 3 focused tests cover row derivation, CSV append semantics, and CLI wiring.
+
 ## v0.5.50 — Negative-Result Archive Template + Phase 2 Closeout ✓ (2026-07-06)
 
 Phase 2 exit criteria required a public negative-result archive format but none

@@ -132,6 +132,18 @@ python -m openamp_foundry.cli calibration-intake \
   --out-json outputs/calibration_intake_report.json
 ```
 
+Append inactive, toxic, or control-failed outcomes to the negative-result archive:
+
+```bash
+python -m openamp_foundry.cli calibration-intake \
+  --panel examples/lab_results_panel.csv \
+  --results-dir examples/lab_results \
+  --out-json outputs/calibration_intake_report.json \
+  --negative-archive outputs/negative_result_archive.csv \
+  --pipeline-version v0.5.51 \
+  --source-batch wave1
+```
+
 Evaluate whether a calibration-intake report satisfies the pre-registered recalibration policy:
 
 ```bash

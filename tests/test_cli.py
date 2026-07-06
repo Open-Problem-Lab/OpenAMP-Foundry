@@ -1,6 +1,7 @@
 """CLI integration tests."""
 from __future__ import annotations
 
+import csv
 import json
 
 
@@ -824,3 +825,56 @@ class TestNoveltyCheckBroad:
         assert data["n_novel"] == 0
         report = (tmp_path / "out.md").read_text(encoding="utf-8")
         assert "CLOSE_RELATIVE" in report
+
+
+def test_calibration_intake_can_append_negative_archive(tmp_path, capsys):
+    panel = tmp_path / "panel.csv"
+    panel.write_text(
+        "pilot_rank,candidate_id,sequence,length,seed,ensemble,activity,boman_activity,"
+        "disagreement,safety,synthesis,novelty,serum_stability,selectivity_proxy,rich_selectivity,pilot_priority\n"
+        "1,CAND-001,AAAKKKLLL,9,SEED-X,0.80,0.82,0.70,0.03,0.91,0.87,0.66,0.55,0.61,0.73,0.79\n",
+        encoding="utf-8",
+    )
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    result = {
+        "result_id": "RES-001",
+        "candidate_id": "CAND-001",
+        "assay_type": "MIC",
+        "organism_or_cell_line": "SYNTHETIC TEST - E. coli ATCC 25922",
+        "result_value": 128.0,
+        "result_unit": "µg/mL",
+        "result_qualitative": "inactive",
+        "positive_control_passed": True,
+        "negative_control_passed": True,
+        "positive_control_id": "ciprofloxacin 0.25 µg/mL",
+        "negative_control_id": "PBS",
+        "assay_date": "2026-07-06",
+        "replicate_count": 3,
+        "performed_by_lab": "SYNTHETIC TEST - Lab X",
+        "raw_data_sha256": None,
+        "computational_candidate_certificate_hash": (
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        "notes": "SYNTHETIC TEST DATA - not a real assay.",
+        "disclaimer": "SYNTHETIC TEST. Not a real experimental result.",
+    }
+    (results_dir / "res1.json").write_text(json.dumps(result), encoding="utf-8")
+    out_json = tmp_path / "intake.json"
+    archive = tmp_path / "negative_result_archive.csv"
+
+    rc = main([
+        "calibration-intake",
+        "--panel", str(panel),
+        "--results-dir", str(results_dir),
+        "--out-json", str(out_json),
+        "--negative-archive", str(archive),
+        "--pipeline-version", "v0.test",
+        "--source-batch", "wave-test",
+    ])
+    assert rc == 0
+    captured = json.loads(capsys.readouterr().out)
+    assert captured["n_negative_archive_rows"] == 1
+    rows = list(csv.DictReader(archive.open()))
+    assert rows[0]["reason_category"] == "lab_inactive"
+    assert rows[0]["pipeline_version"] == "v0.test"

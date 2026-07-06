@@ -1,7 +1,7 @@
 # 50-Loop Execution Plan
 
-> **Status:** Strategic roadmap. Updated v0.5.50.
-> **Current state:** 1843 tests, pipeline AUROC 0.7792, calibration pipeline complete (intake + gate + engine + dry-run + policy-version + synthetic generator + recalibration report + batch-2 selector + recovery benchmark + end-to-end integration + pytest golden-path test + policy bump workflow + negative result archive),
+> **Status:** Strategic roadmap. Updated v0.5.51.
+> **Current state:** 1843+ tests, pipeline AUROC 0.7792, calibration pipeline complete (intake + gate + engine + dry-run + policy-version + synthetic generator + recalibration report + batch-2 selector + recovery benchmark + end-to-end integration + pytest golden-path test + policy bump workflow + negative result archive template + intake append plumbing),
 > > Phase 0 complete (Loops 1–8), Phase 1 complete (Loops 9–17), Phase 2 complete (Loops 18–29),
 > cluster-split/selectivity/triage now gated in CI, Wave 0.5 panel ready (24 candidates, 15 families), no wet-lab data yet.
 >
@@ -81,7 +81,8 @@ Build the recalibration engine gated by the policy. Implement active-learning ba
 | 26 ✅ | No integration between active-learning selector and the calibration pipeline | `scripts/run_calibration_loop.py`: end-to-end script that generates synthetic lab results → builds intake → evaluates gate → computes weight proposal (dry-run) → selects batch-2 → writes manifest. `make calibration-loop` target. | Full chain verified end-to-end on synthetic data; all 5 steps produce valid output files |
 | 27 ✅ | No end-to-end regression test for the full calibration loop (the "golden path") in pytest | `tests/test_calibration_e2e.py` — `TestFullCalibrationLoop.test_full_calibration_loop_via_cli`: generates synthetic results → CLI intake → gate → engine proposal → batch-2 selector → validates all output artifacts. Uses subprocess CLI calls for every step with temp directory isolation. | 1834 tests passing; full golden path tested on every PR |
 | 28 ✅ | Policy version bump workflow for when real data arrives | `scripts/bump_recalibration_policy.py`: standalone script with `--dry-run`, decision-log guard, auto-increment + write. CI guard in `ci.yml` validates against base branch. v0.5.49. 9 tests. | CI rejects policy PRs without valid decision log; `make bump-policy-version` and `make bump-policy-version-dry-run` available |
-| 29 ✅ | No public negative-result archive format. If Wave 1 yields all negatives, where do they go? | `docs/NEGATIVE_RESULT_ARCHIVE.md`: template for publishing failed candidates, assay conditions, pipeline scores, and control failures. Pre-selection rejects auto-recorded by filter scripts; lab-tested inactives appended by calibration-intake. Entry schema defined with required/conditional fields. v0.5.50. | Template is complete enough for a lab partner to fill; schema prevents missing fields |
+| 29 ✅ | No public negative-result archive format. If Wave 1 yields all negatives, where do they go? | `docs/NEGATIVE_RESULT_ARCHIVE.md`: template for publishing failed candidates, assay conditions, pipeline scores, and control failures. Entry schema defined with required/conditional fields. v0.5.50. | Template is complete enough for a lab partner to fill; schema prevents missing fields |
+| 30 ✅ | Docs claimed archive automation existed, but only the template existed | `calibration-intake --negative-archive` now appends `lab_inactive`, `lab_toxic`, and `control_failure` rows into `outputs/negative_result_archive.csv` through `reports/negative_archive.py`. v0.5.51. | CLI + intake tests verify append-only rows, stable field order, monotonic IDs |
 
 **Phase 2 exit criteria (all 5 met ✅):**
 - ✅ `make calibration-loop` runs from clean checkout, produces batch-2 manifest
@@ -92,7 +93,7 @@ Build the recalibration engine gated by the policy. Implement active-learning ba
 
 ---
 
-## Phase 3 — Virtual Assay Scaffolding (Loops 30–39)
+## Phase 3 — Virtual Assay Scaffolding (Loops 31–39)
 
 Build the multi-resolution virtual assay layer: structure proxies, membrane interaction models, uncertainty-aware surrogates. Every module must justify itself against cheap heuristics.
 
@@ -157,12 +158,12 @@ Phase 1 (Loops 9–17): Benchmark Honesty
   └── justifies →
 Phase 2 (Loops 18–29): Calibration Engine
   └── requires real data ──┐
-Phase 3 (Loops 30–39): Virtual Assay       │ (parallel tracks)
+Phase 3 (Loops 31–39): Virtual Assay       │ (parallel tracks)
   └── feeds into ──────────┘
 Phase 4 (Loops 40–49): Wet-Lab Readiness ←── both tracks
 ```
 
-**Parallel tracks:** Loops 30–39 (virtual assay) and Loops 18–29 (calibration engine) are
+**Parallel tracks:** Loops 31–39 (virtual assay) and Loops 18–30 (calibration engine / evidence plumbing) are
 partially independent. If wet-lab data arrives early, calibration engine takes priority.
 If no data arrives, virtual assay scaffolding continues independently.
 
@@ -180,7 +181,7 @@ If no data arrives, virtual assay scaffolding continues independently.
 Phase 0: ✅ Complete (Loops 1–8)
 Phase 1: ✅ Complete (Loops 9–17)
 Phase 2: ✅ Complete (Loops 18–29)
-Phase 3: Not started (Loops 30–39)
+Phase 3: Not started (Loops 31–39)
 Phase 4: Not started (Loops 40–49)
 ```
 
@@ -241,7 +242,7 @@ Phase 4: Not started (Loops 40–49)
 | 28 ✅ | Policy version bump workflow for when real data arrives | `scripts/bump_recalibration_policy.py`: standalone script with `--dry-run`, decision-log guard, auto-increment + write. CI guard in `ci.yml` validates policy version changes against base branch. v0.5.49. 9 tests. | CI rejects policy PRs without valid decision log; `make bump-policy-version` and `make bump-policy-version-dry-run` available |
 | 29 ✅ | No public negative-result archive format. If Wave 1 yields all negatives, where do they go? | `docs/NEGATIVE_RESULT_ARCHIVE.md`: full template with entry schema, procedures, automation notes, and limitations. Covers pre-selection rejects, selected-untested, lab inactives, lab toxic, control failures. v0.5.50. | Template complete enough for a lab partner to fill; schema defines 18 fields with required/conditional markers |
 
-**Next loop:** Loop 30 — Phase 3 (virtual assay scope document).
+**Next loop:** Loop 31 — Phase 3 (virtual assay scope document).
 
 **Phase 2 exit criteria (all 5 met ✅):**
 - ✅ `make calibration-loop` runs from clean checkout, produces batch-2 manifest

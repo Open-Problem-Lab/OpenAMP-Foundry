@@ -44,6 +44,10 @@ from openamp_foundry.data.lab_results import (
     summarise_candidate_outcomes,
     summarise_lab_results,
 )
+from openamp_foundry.reports.negative_archive import (
+    NegativeArchiveRow,
+    append_negative_archive_rows,
+)
 
 # Minimum sample size required before any aggregate cohort metric is reported.
 # Below this threshold the cohort is marked ``insufficient_data: True`` and
@@ -317,6 +321,101 @@ def _per_candidate_rows(panel_rows, per_candidate_actuals):
             }
         )
     return rows
+
+
+def negative_archive_rows_from_report(
+    report,
+    *,
+    pipeline_version: str,
+    source_batch: str,
+    entry_date: str | None = None,
+    recalibration_used: str = "no",
+) -> list[NegativeArchiveRow]:
+    """Build negative-result archive rows from a calibration intake report."""
+    joined_by_id = {
+        row["candidate_id"]: row
+        for row in report.get("per_candidate_joined", [])
+    }
+    rows: list[NegativeArchiveRow] = []
+    for candidate in report.get("per_candidate_outcomes", []):
+        cid = candidate.get("candidate_id", "")
+        joined = joined_by_id.get(cid, {})
+        actuals = joined.get("has_lab") or {}
+        preds = joined.get("predictions", {}) or {}
+        base = {
+            "candidate_id": cid,
+            "sequence": joined.get("sequence_preview", ""),
+            "pipeline_version": pipeline_version,
+            "source_batch": source_batch,
+            "date": entry_date,
+            "score_activity": _fmt_score(preds.get("activity")),
+            "score_safety": _fmt_score(preds.get("safety")),
+            "score_novelty": _fmt_score(preds.get("novelty")),
+            "score_ensemble": _fmt_score(preds.get("ensemble")),
+            "recalibration_used": recalibration_used,
+        }
+        if not candidate.get("all_controls_passed", True):
+            rows.append(
+                NegativeArchiveRow(
+                    **base,
+                    reason_category="control_failure",
+                    reason_detail=(
+                        "At least one assay control failed; archived for "
+                        "audit but not treated as valid outcome evidence."
+                    ),
+                    assay_type=";".join(candidate.get("assay_types", [])),
+                    reviewer_notes="control_fail_result_ids="
+                    + ";".join(candidate.get("control_fail_result_ids", [])),
+                )
+            )
+        if actuals.get("active_mic") is False:
+            rows.append(
+                NegativeArchiveRow(
+                    **base,
+                    reason_category="lab_inactive",
+                    reason_detail=(
+                        f"MIC result exceeded active cutoff "
+                        f"({MIC_ACTIVE_CUTOFF_UG_ML:g} ug/mL)."
+                    ),
+                    assay_type="MIC",
+                )
+            )
+        if actuals.get("high_hemolysis") is True:
+            rows.append(
+                NegativeArchiveRow(
+                    **base,
+                    reason_category="lab_toxic",
+                    reason_detail=(
+                        f"Hemolysis result met high-risk cutoff "
+                        f"({HEMOLYSIS_HIGH_PCT:g}%)."
+                    ),
+                    assay_type="hemolysis_RBC",
+                )
+            )
+    return rows
+
+
+def write_negative_archive_from_intake(
+    report,
+    archive_path,
+    *,
+    pipeline_version: str,
+    source_batch: str,
+    entry_date: str | None = None,
+    recalibration_used: str = "no",
+) -> int:
+    rows = negative_archive_rows_from_report(
+        report,
+        pipeline_version=pipeline_version,
+        source_batch=source_batch,
+        entry_date=entry_date,
+        recalibration_used=recalibration_used,
+    )
+    return append_negative_archive_rows(archive_path, rows)
+
+
+def _fmt_score(value) -> str:
+    return "" if value is None else f"{float(value):.6g}"
 
 
 def build_calibration_intake_report(panel_csv, results_dir):
