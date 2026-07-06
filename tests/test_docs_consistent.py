@@ -222,6 +222,32 @@ class TestDocsConsistent:
         assert "Wave 0.5 complete; generic future-panel Gate 6 remains panel-specific" in roadmap_text
         assert "CAMPR4 was excluded" in expert_text
 
+    def test_doc_loop_plan_current_position_matches_loop_table(self):
+        """50-loop plan must not regress to stale current-position text."""
+        text = (DOCS_DIR / "50_LOOP_PLAN.md").read_text(encoding="utf-8")
+        assert "| 26 ✅ |" in text
+        assert "| 27 |" in text
+        assert "Phase 2 Loops 18-26 complete" in text
+        assert (
+            "Phase 2: Loop 26 of 29 (calibration loop integration shipped"
+            in text
+        )
+        assert (
+            "**Next loop:** Loop 27 — Phase 2 "
+            "(Golden-path pytest regression for the full calibration loop)."
+            in text
+        )
+        assert "Loop 25 of 29" not in text
+        assert "Loop 26 next" not in text
+
+    def test_doc_loop_plan_references_existing_calibration_loop_target(self):
+        """Phase 2 exit criteria must reference an executable Make target."""
+        text = (DOCS_DIR / "50_LOOP_PLAN.md").read_text(encoding="utf-8")
+        makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+        assert "`make calibration-loop`" in text
+        assert re.search(r"^calibration-loop:", makefile, flags=re.MULTILINE)
+        assert "make calibration-full-loop" not in text
+
 
 class TestFeatureDecompositionDocsConsistent:
     """Guard against drift between feature decomposition docs and reality."""

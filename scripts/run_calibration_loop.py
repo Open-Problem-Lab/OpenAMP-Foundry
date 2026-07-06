@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -136,11 +135,12 @@ def run_calibration_loop(
     write_gate_verdict_json(gate_verdict, gate_json)
     print(f"  Gate verdict written to {gate_json}")
     print(f"  may_recalibrate: {gate_verdict.may_recalibrate}")
-    n_blockers = len(gate_verdict.reasons)
-    print(f"  Blockers: {n_blockers}")
+    n_review_notes = len(gate_verdict.reasons)
+    note_label = "Blocking reasons" if not gate_verdict.may_recalibrate else "Review notes"
+    print(f"  {note_label}: {n_review_notes}")
     results["gate_verdict"] = str(gate_json)
     results["may_recalibrate"] = gate_verdict.may_recalibrate
-    results["n_blockers"] = n_blockers
+    results["n_review_notes"] = n_review_notes
 
     if not gate_verdict.may_recalibrate:
         notes.append(
@@ -162,7 +162,6 @@ def run_calibration_loop(
         0.10,
     )
 
-    engine_success = False
     proposal = None
     from openamp_foundry.calibration.engine import (
         BudgetExceededError,
@@ -178,7 +177,6 @@ def run_calibration_loop(
             current_weights=current_weights,
             policy_l1_budget=l1_budget,
         )
-        engine_success = True
         proposal_json = out_path / "weight_proposal.json"
         write_weight_update_proposal_json(proposal, proposal_json)
         print(f"  Weight proposal written to {proposal_json}")

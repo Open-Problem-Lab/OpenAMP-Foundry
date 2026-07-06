@@ -634,7 +634,8 @@ def write_gate_verdict_markdown(
         )
     lines.append("")
     if verdict.reasons:
-        lines.append("## Reasons (blockers)")
+        heading = "Blocking reasons" if not verdict.may_recalibrate else "Review notes"
+        lines.append(f"## {heading}")
         lines.append("")
         for reason in verdict.reasons:
             lines.append(f"- {reason}")

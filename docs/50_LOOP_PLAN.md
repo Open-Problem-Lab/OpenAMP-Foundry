@@ -2,7 +2,7 @@
 
 > **Status:** Strategic roadmap. Updated v0.5.46.
 > **Current state:** 1832 tests, pipeline AUROC 0.7792, calibration pipeline complete (intake + gate + engine + dry-run + policy-version + synthetic generator + recalibration report + batch-2 selector + recovery benchmark) + end-to-end integration script shipped,
-> Phase 0 complete (Loops 1–8), Phase 1 complete (Loops 9–17), Phase 2 Loops 18–26 complete,
+> Phase 0 complete (Loops 1-8), Phase 1 complete (Loops 9-17), Phase 2 Loops 18-26 complete,
 > cluster-split/selectivity/triage now gated in CI, Wave 0.5 panel ready (24 candidates, 15 families), no wet-lab data yet.
 >
 > Each loop = one focused PR: bottleneck identified → implemented → verified → merged.
@@ -82,7 +82,7 @@ Build the recalibration engine gated by the policy. Implement active-learning ba
 | 29 | No public negative-result archive format. If Wave 1 yields all negatives, where do they go? | `docs/NEGATIVE_RESULT_ARCHIVE.md`: template for publishing failed candidates, assay conditions, and pipeline scores alongside the negative result | Template is complete enough for a lab partner to fill |
 
 **Phase 2 exit criteria:**
-- `make calibration-full-loop` runs from clean checkout, produces batch-2 manifest
+- `make calibration-loop` runs from clean checkout, produces batch-2 manifest
 - Recalibration engine correctly rejects when policy forbids it
 - Active-learning selector benchmarked against random baseline
 - Negative-result archive template exists
@@ -177,7 +177,7 @@ If no data arrives, virtual assay scaffolding continues independently.
 ```
 Phase 0: ✅ Complete (Loops 1–8)
 Phase 1: ✅ Complete (Loops 9–17)
-Phase 2: Loop 25 of 29 (recovery benchmark shipped — Loop 26 next)
+Phase 2: Loop 26 of 29 (calibration loop integration shipped — Loop 27 next)
 Phase 3: Not started (Loops 30–39)
 Phase 4: Not started (Loops 40–49)
 ```
@@ -232,4 +232,4 @@ Phase 4: Not started (Loops 40–49)
 | 21 ✅ | Recalibration engine: the gate existed but no engine. Real weight-update code needs to be safe, auditable, and gated | `calibration/engine.py`: `compute_weight_update()` returns `WeightUpdateProposal`. Control theory: delta = learning_rate × (observed_accuracy − target_accuracy). Conservative LR 0.05. L1 budget enforced. v0.5.36 | 1735 tests; CLI recalibration-engine exits 0 on proposal, 3 on violations, 2 on missing files; 12 engine tests |
 | 22 ✅ | No dry-run mode for recalibration engine. User can't preview what weights would change | `--dry-run` flag: compute and log proposed weight changes without applying them. Outputs comparison table (current vs proposed). v0.5.43. 1 test, Makefile target. | Dry run produces diff without side effects; verified with `make recalibration-engine-dry-run` + manual inspection |
 
-**Next loop:** Loop 26 — Phase 2 (Integration between active-learning selector and calibration pipeline).
+**Next loop:** Loop 27 — Phase 2 (Golden-path pytest regression for the full calibration loop).

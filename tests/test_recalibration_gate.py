@@ -651,6 +651,22 @@ def test_gate_verdict_writers_produce_files(tmp_path):
     md_text = md_path.read_text()
     for a in p.prohibited_actions:
         assert a.id in md_text
+    assert "## Review notes" in md_text
+
+
+def test_gate_verdict_markdown_uses_blocking_heading_on_failure(tmp_path):
+    """Markdown must not label passing review notes as blockers."""
+    p = load_recalibration_policy(POLICY_PATH)
+    v = evaluate_recalibration_gate(_empty_intake_report(), p)
+    md_path = tmp_path / "v_fail.md"
+    write_gate_verdict_markdown(
+        v,
+        md_path,
+        intake_report_path="outputs/calibration_intake.json",
+        policy_path="configs/recalibration_policy.yaml",
+    )
+    md_text = md_path.read_text()
+    assert "## Blocking reasons" in md_text
 
 
 # ────────────────────────────────────────────────────────────────────
