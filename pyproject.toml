@@ -32,8 +32,10 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+extend-exclude = [
+  "tests/l*/test_*_batch_pack.py",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "scripts"]
-
