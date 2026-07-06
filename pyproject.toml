@@ -33,6 +33,7 @@ where = ["src"]
 line-length = 100
 src = ["src", "tests"]
 extend-exclude = [
+  "src/openamp_foundry/reproducibility.py",
   "tests/l*/test_*_batch_pack.py",
   "tests/release/test_run_manifest_verifier.py",
 ]
