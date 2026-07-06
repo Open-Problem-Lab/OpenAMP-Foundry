@@ -20,6 +20,9 @@ from openamp_foundry.benchmark.charge_matched import (
 from openamp_foundry.benchmark.feature_decomp import (
     run_feature_decomposition_benchmark,
 )
+from openamp_foundry.benchmark.simulation_baselines import (
+    run_simulation_baseline_benchmark,
+)
 from openamp_foundry.benchmark.leakage import find_near_duplicates
 from openamp_foundry.benchmark.metrics_snapshot import build_metrics_snapshot
 from openamp_foundry.benchmark.retrospective import (
@@ -50,6 +53,7 @@ __all__ = [
     "run_charge_matched_benchmark",
     # feature_decomp
     "run_feature_decomposition_benchmark",
+    "run_simulation_baseline_benchmark",
     # leakage
     "find_near_duplicates",
     # metrics_snapshot

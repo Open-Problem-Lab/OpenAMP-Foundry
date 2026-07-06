@@ -1,5 +1,34 @@
 # Roadmap
 
+## v0.5.58 — Simulation Cheap-Baseline Benchmark (Loop 36) ✓ (2026-07-06)
+
+Recovered the skipped Loop 36 truth check after the simulation info-mode CLI
+landed. Simulation scores are visible now, so each module needs a direct
+cheap-baseline comparison before anyone treats those columns as evidence.
+
+Changes:
+- ``src/openamp_foundry/benchmark/simulation_baselines.py`` — compares shipped
+  simulation signals against their built-in cheap baselines on current
+  AMP-vs-decoy and hemolytic-vs-selective tasks, with bootstrap CIs.
+- ``scripts/benchmark_simulation_baselines.py`` and ``make bench-simulation-baselines``
+  — writes ``outputs/simulation_baselines.json``.
+- ``openamp-foundry bench simulation-baselines`` — CLI wrapper for the same
+  benchmark.
+- ``outputs/metrics_snapshot.json`` now includes the simulation-baseline
+  result.
+- 8 focused tests; full suite now verifies at 1941 passed, 7 skipped.
+
+**Honest finding:**
+- ``membrane_proxy.bacterial_binding`` beats ``BomanBaseline`` on AMP-vs-decoy
+  AUROC (`0.7512` vs `0.3899`).
+- ``membrane_proxy.selectivity_ratio`` beats ``BomanBaseline`` on within-AMP
+  hemolysis detection (`0.6385` vs `0.4834`) but remains below the existing
+  ``rich_selectivity`` detector (`0.7453`).
+- ``structure_proxy.helix_weight`` does not beat ``HelicityBaseline`` (`0.6458`
+  vs `0.6486`), and ``non_helical`` is weaker (`0.5876`).
+- Weighted simulation mode remains blocked. This benchmark supports keeping
+  simulation as informational evidence only.
+
 ## v0.5.57 — Simulation Mode CLI Flag (Loop 37) ✓ (2026-07-06)
 
 Phase 3 simulation modules are now user-accessible via the `rank` CLI.

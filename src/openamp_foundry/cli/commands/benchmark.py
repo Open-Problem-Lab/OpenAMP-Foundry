@@ -337,3 +337,21 @@ def _run_simulation_gate(args: argparse.Namespace) -> int:
         Path(args.out).write_text(json.dumps(verdict, indent=2) + "\n")
     print(json.dumps(verdict, indent=2))
     return 0 if verdict["may_use_weighted_mode"] else 3
+
+
+def _run_simulation_baselines(args: argparse.Namespace) -> int:
+    """Run per-module cheap-baseline benchmark for simulation modules."""
+    from openamp_foundry.benchmark.simulation_baselines import (
+        run_simulation_baseline_benchmark,
+    )
+
+    result = run_simulation_baseline_benchmark(
+        amp_csv=args.amp_csv,
+        decoy_csv=args.decoy_csv,
+        hemolysis_csv=args.hemolysis_csv,
+        n_bootstrap=args.n_bootstrap,
+    )
+    if args.out:
+        Path(args.out).write_text(json.dumps(result, indent=2) + "\n")
+    print(json.dumps(result, indent=2))
+    return 0

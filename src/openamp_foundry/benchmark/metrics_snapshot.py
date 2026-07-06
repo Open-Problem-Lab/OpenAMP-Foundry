@@ -11,6 +11,9 @@ from openamp_foundry.benchmark.charge_matched import (
 from openamp_foundry.benchmark.feature_decomp import (
     run_feature_decomposition_benchmark,
 )
+from openamp_foundry.benchmark.simulation_baselines import (
+    run_simulation_baseline_benchmark,
+)
 from openamp_foundry.benchmark.retrospective import (
     run_cluster_split_benchmark,
     run_expert_ablation_benchmark,
@@ -74,6 +77,12 @@ def build_metrics_snapshot(
         n_bootstrap=n_bootstrap,
     )
     feature_decomp = run_feature_decomposition_benchmark(
+        hemolysis_csv=hemolysis_csv,
+        n_bootstrap=n_bootstrap,
+    )
+    simulation_baselines = run_simulation_baseline_benchmark(
+        amp_csv="examples/validation/known_amps_500.csv",
+        decoy_csv="examples/validation/random_background_500.csv",
         hemolysis_csv=hemolysis_csv,
         n_bootstrap=n_bootstrap,
     )
@@ -211,6 +220,7 @@ def build_metrics_snapshot(
             "per_feature": feature_decomp["per_feature"],
             "verdict": feature_decomp["verdict"],
         },
+        "simulation_baselines": simulation_baselines,
         "charge_matched_decoys": charge_matched,
         "charge_balanced_synthetic_decoys": charge_balanced_synthetic,
         "ranking_policy": {

@@ -29,6 +29,13 @@ def test_metrics_snapshot_matches_current_benchmark_truth(tmp_path):
     assert snapshot["charge_balanced_synthetic_decoys"]["n_positives"] == 500
     assert snapshot["charge_balanced_synthetic_decoys"]["max_abs_charge_density_delta"] == 0.0
     assert snapshot["charge_balanced_synthetic_decoys"]["charge_density_auroc"] == 0.5
+    assert snapshot["simulation_baselines"]["benchmark"] == "simulation_module_vs_baseline"
+    assert (
+        snapshot["simulation_baselines"]["per_module"]["membrane_amp_vs_decoy"][
+            "verdict"
+        ]
+        == "BEATS_BASELINE"
+    )
     assert "top_20_by_gate_triage" in snapshot["triage"]
     assert "top_20_by_gate_triage" in snapshot["strict_triage"]
     assert "expert_composite" in snapshot["triage"]["per_scorer"]

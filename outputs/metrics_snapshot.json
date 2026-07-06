@@ -956,6 +956,102 @@
     "safety_verdict": "Safety scorer shows weak hemolysis detection (detection AUROC=0.5116, CI lo=0.4321 < 0.5). Signal is present but not statistically significant. The melittin blind spot remains: 1D hydrophobic moment cannot capture all hemolysis mechanisms.",
     "selectivity_proxy_verdict": "Selectivity proxy shows weak hemolysis detection (detection AUROC=0.5744, CI lo=0.4954). Trend is correct but not significant at this sample size."
   },
+  "simulation_baselines": {
+    "benchmark": "simulation_module_vs_baseline",
+    "best_existing_within_amp": {
+      "ensemble_auroc": 0.5406,
+      "rich_selectivity_auroc": 0.7453
+    },
+    "n_amp": 500,
+    "n_decoy": 500,
+    "n_hemolytic": 45,
+    "n_selective": 125,
+    "per_module": {
+      "membrane_amp_vs_decoy": {
+        "baseline": "boman_baseline",
+        "baseline_auroc": 0.3899,
+        "baseline_ci95": [
+          0.3633,
+          0.418
+        ],
+        "benchmark": "simulation_baseline_amp_vs_decoy",
+        "delta_auroc": 0.3613,
+        "module": "membrane_proxy.bacterial_binding",
+        "module_auroc": 0.7512,
+        "module_ci95": [
+          0.719,
+          0.7813
+        ],
+        "task": "amp_vs_decoy",
+        "verdict": "BEATS_BASELINE"
+      },
+      "membrane_within_amp": {
+        "baseline": "boman_baseline",
+        "baseline_auroc": 0.4834,
+        "baseline_ci95": [
+          0.4176,
+          0.5532
+        ],
+        "benchmark": "simulation_baseline_within_amp",
+        "delta_auroc": 0.1551,
+        "module": "membrane_proxy.selectivity_ratio",
+        "module_auroc": 0.6385,
+        "module_ci95": [
+          0.5366,
+          0.7351
+        ],
+        "task": "hemolytic_vs_selective",
+        "verdict": "BEATS_BASELINE"
+      },
+      "structure_non_helical_within_amp": {
+        "baseline": "helicity_baseline",
+        "baseline_auroc": 0.6486,
+        "baseline_ci95": [
+          0.5499,
+          0.7502
+        ],
+        "benchmark": "simulation_baseline_within_amp",
+        "delta_auroc": -0.061,
+        "module": "structure_proxy.non_helical",
+        "module_auroc": 0.5876,
+        "module_ci95": [
+          0.504,
+          0.6711
+        ],
+        "task": "hemolytic_vs_selective",
+        "verdict": "NO_GAIN"
+      },
+      "structure_within_amp": {
+        "baseline": "helicity_baseline",
+        "baseline_auroc": 0.6486,
+        "baseline_ci95": [
+          0.5499,
+          0.7502
+        ],
+        "benchmark": "simulation_baseline_within_amp",
+        "delta_auroc": -0.0028,
+        "module": "structure_proxy.helix_weight",
+        "module_auroc": 0.6458,
+        "module_ci95": [
+          0.5438,
+          0.7514
+        ],
+        "task": "hemolytic_vs_selective",
+        "verdict": "NO_GAIN"
+      }
+    },
+    "summary": {
+      "modules_beating_baseline": [
+        "membrane_amp_vs_decoy",
+        "membrane_within_amp"
+      ],
+      "modules_not_beating_baseline": [
+        "structure_within_amp",
+        "structure_non_helical_within_amp"
+      ],
+      "recommendation": "Some modules beat their cheap baseline, but weighted mode still requires the simulation gate."
+    }
+  },
   "standard": {
     "auprc": 0.8164,
     "auroc": 0.7832,
