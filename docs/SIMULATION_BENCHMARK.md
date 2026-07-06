@@ -4,12 +4,14 @@
 
 Phase 3 (virtual assay scaffolding, Loops 30–39) built two simulation modules,
 three benchmarks, a weighted-mode gate, a CLI flag, and an external adapter
-protocol. The honest finding across all benchmarks: **simulation modules do
-not improve candidate ranking beyond existing baselines**.
+protocol. The honest finding across all benchmarks: **simulation does not
+improve ranking**.
 
-Simulation remains informational only (`rank --simulation-mode info`).
+Current verdict: simulation remains informational only.
 Weighted mode is blocked by the gate and will remain blocked until a
 future module demonstrably beats its cheapest heuristic baseline.
+
+`weighted` simulation remains blocked.
 
 ---
 
