@@ -1,5 +1,26 @@
 # Roadmap
 
+## v0.5.62 — Pre-Registered Pass/Fail Criteria (Loop 41) ✓ (2026-07-06)
+
+Machine-readable pass/fail gates for the Wave 1 wet-lab batch. Pre-registered
+before any wet-lab data is seen. CI-validatable against lab result schema.
+
+Changes:
+- ``configs/wave1_pass_fail.yaml`` — YAML config with: primary endpoint
+  (MIC ≤ 32 for ≥ 3 candidates against E. coli), secondary endpoint
+  (MIC ≤ 32 and TI > 10 for ≥ 1), confirmed hit definition, hemolysis
+  safety gate (0 toxic with TI < 2), positive control range
+  (SEED-001_VAR_064, MIC 4–32), batch-level requirements (≥ 20 tested,
+  all controls passed), negative result archive requirements.
+- ``scripts/check_wave1_pass_fail.py`` — CLI validation tool: reads lab
+  result JSONs + criteria YAML, reports per-check pass/fail. Exit 0 if
+  all pass, 3 if any fail, 2 on missing files.
+- ``tests/test_wave1_pass_fail.py`` — 11 tests covering pass, fail, CLI
+  exit codes, output writing, missing files.
+- ``docs/50_LOOP_PLAN.md`` — Loop 41 ✅. Next: Loop 42.
+- ``docs/METRICS_CURRENT.md`` — Changelog updated. Test count: 1977.
+- 1977 tests passing (1966 existing + 11 new).
+
 ## v0.5.61 — Lab Partner Onboarding Pack (Loop 40) ✓ (2026-07-06)
 
 Phase 4 begins with a comprehensive onboarding document for CRO or academic

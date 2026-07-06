@@ -5,7 +5,8 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > **Purpose:** One authoritative table of current pipeline metrics. If any doc disagrees
 > with this file, this file wins. Updated whenever benchmark/benchmark config changes.
 >
-> **Last updated:** 2026-07-06 (lab partner onboarding — v0.5.61)
+> **Last updated:** 2026-07-06 (pre-registered pass/fail criteria — v0.5.62)
+> **New in v0.5.62:** `configs/wave1_pass_fail.yaml` — machine-readable pass/fail gates (MIC ≤ 32, TI > 10, positive control, 0 toxic, ≥20 tested). `scripts/check_wave1_pass_fail.py` — validation CLI. 11 tests. 1977 total.
 > **New in v0.5.61:** `docs/LAB_PARTNER_ONBOARDING.md` — CRO onboarding pack with panel summary, synthesis instructions, assay protocols, data return format, controls, safety, timeline. No code changes. 1966 tests.
 > **New in v0.5.60:** `docs/SIMULATION_BENCHMARK.md` consolidates simulation ablation, cheap-baseline comparison, and weighted-mode gate results. Current conclusion: simulation does not improve ranking; `weighted` remains blocked.
 > **New in v0.5.59:** `ExternalSimulationAdapter` protocol — wraps third-party callables into `VirtualAssayProxy`. Availability check, graceful error handling, metadata override. ARCHITECTURE.md docs updated. 12 tests. 1965 total.
@@ -1116,7 +1117,7 @@ Decoys score low on activity. Selective AMPs score moderately on both.
 
 | Metric | Value |
 |--------|-------|
-| Total tests | 1965 |
+| Total tests | 1977 |
 | Coverage (branch) | 99% (6 CLI guard lines only) |
 | Source modules at 100% | All pipeline, QC, scoring modules |
 
