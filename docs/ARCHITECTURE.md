@@ -42,7 +42,7 @@ The purpose of the added layers is not simulation theater. It is to improve whic
 | `openamp_foundry.reports` | human-readable and machine-readable batch, calibration, and wet-lab review reports |
 | `openamp_foundry.benchmark` | leakage checks, cluster-split benchmark, expert ablation benchmark, within-AMP selectivity benchmark, triage benchmark, per-feature selectivity decomposition, and evaluation scaffolding |
 | `openamp_foundry.generators` | safe, bounded toy candidate generation |
-| `openamp_foundry.simulation` | membrane proxy (Loop 31), structure proxy (Loop 32), simulation ablation benchmark (Loop 33), dummy stub, interfaces |
+| `openamp_foundry.simulation` | membrane proxy (Loop 31), structure proxy (Loop 32), simulation ablation benchmark (Loop 33), fail-closed weighted-mode gate, external adapter protocol, dummy stub, interfaces |
 | `openamp_foundry.calibration` | lab-result intake (v0.5.19), pre-registered recalibration policy + gate (v0.5.20), engine + report (v0.5.36/v0.5.44), policy version tracking (v0.5.40) |
 | `openamp_foundry.active_learning` | batch-2 selector (v0.5.45) and recovery benchmark (v0.5.46) for choosing informative next experiments under uncertainty |
 | `openamp_foundry.analysis` | diversity clustering, panel similarity, family structural warnings, audit helpers |
@@ -115,7 +115,7 @@ Later external predictors should be added as adapters. Each adapter must return:
 
 Adapters must not silently download model weights or send sequences to third-party services without explicit user consent.
 
-Any future simulation or emulator module must implement the `VirtualAssayProxy` interface (in `openamp_foundry.simulation`) and return a `SimulationResult` object matching this schema:
+Any future in-repo simulation or emulator module must implement the `VirtualAssayProxy` interface (in `openamp_foundry.simulation`) and return a `SimulationResult` object matching this schema:
 
 ```python
 @dataclass
@@ -131,3 +131,12 @@ class SimulationResult:
 ```
 
 If calibration data is absent or weak, the `uncertainty` field must surface that directly.
+
+Third-party or heavyweight simulation integrations must implement
+`ExternalSimulationAdapter` instead. That protocol requires adapter metadata
+(`name`, `version`), explicit consent flags (`requires_network`,
+`requires_model_download`, `requires_explicit_consent`), a `describe()` method,
+and `simulate_batch(sequences) -> list[SimulationResult]`. Adapter outputs
+should be checked with `validate_external_adapter_result()` before they enter
+reports or benchmarks. External adapters must not silently download model
+weights, transmit sequences, or run long jobs without explicit user consent.

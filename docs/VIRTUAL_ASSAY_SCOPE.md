@@ -96,10 +96,15 @@ The virtual assay layer supports three modes:
 | `info` | Simulation scores computed and included in reports only. No ranking impact. | Benchmarking, exploration |
 | `weighted` | Simulation scores affect ranking only if the simulation gate passes on current ablation artifacts. | Only after ablation validation |
 
-The `rank` CLI does **not** yet expose `--simulation-mode`. That omission is
-intentional until a module clears the gate honestly. Current executable policy:
+The `rank` CLI exposes `--simulation-mode off|info`. `weighted` mode is still
+not exposed because the gate blocks it. Current executable policy:
 `openamp-foundry bench simulation-gate` may return `weighted` permission in the
 future, but production ranking remains simulation-free today.
+
+Third-party or heavyweight simulators must implement `ExternalSimulationAdapter`
+and pass `validate_external_adapter_result()` before their outputs are used.
+Adapters must declare whether they require network access, model downloads, or
+explicit user consent.
 
 ## Calibration Requirement
 

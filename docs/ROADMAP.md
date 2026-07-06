@@ -1,5 +1,26 @@
 # Roadmap
 
+## v0.5.59 — External Simulation Adapter Contract (Loop 38) ✓ (2026-07-06)
+
+Added the missing contract for third-party or heavyweight simulation modules.
+This does not add any external simulator. It makes future integrations safer
+and easier to review before they can enter reports or benchmarks.
+
+Changes:
+- ``ExternalSimulationAdapter`` protocol in ``simulation/interfaces.py`` with
+  required metadata, consent flags, ``describe()``, and ``simulate_batch()``.
+- ``validate_external_adapter_result()`` fail-loud helper for batch length,
+  module name, version, and uncertainty-range mismatches.
+- Public exports from ``openamp_foundry.simulation``.
+- Interface tests using a local fake adapter.
+- Architecture and virtual-assay docs updated with consent requirements.
+
+**Honest scope:**
+- No network, model download, molecular dynamics, AlphaFold, or remote service
+  integration was added.
+- The contract only prevents hidden behavior and output-shape drift. It does
+  not validate biological usefulness.
+
 ## v0.5.58 — Simulation Cheap-Baseline Benchmark (Loop 36) ✓ (2026-07-06)
 
 Per-signal comparison: does each simulation output beat its cheapest
