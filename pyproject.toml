@@ -34,6 +34,7 @@ line-length = 100
 src = ["src", "tests"]
 extend-exclude = [
   "tests/l*/test_*_batch_pack.py",
+  "tests/release/test_run_manifest_verifier.py",
 ]
 
 [tool.pytest.ini_options]
