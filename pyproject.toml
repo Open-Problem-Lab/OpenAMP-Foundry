@@ -32,6 +32,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+force-exclude = true
 extend-exclude = [
   "src/openamp_foundry/reproducibility.py",
   "tests/l*/test_*_batch_pack.py",
