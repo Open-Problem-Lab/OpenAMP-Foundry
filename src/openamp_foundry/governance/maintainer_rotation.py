@@ -4,7 +4,7 @@ Ensures the bus-factor plan has required fields and minimum coverage.
 Dry-lab only.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 VALID_ROLES: set[str] = {

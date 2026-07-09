@@ -4,9 +4,7 @@ from __future__ import annotations
 from openamp_foundry.governance.maintainer_rotation import (
     CRITICAL_ROLES,
     MaintainerEntry,
-    RotationPlanValidationResult,
     VALID_ROLES,
-    VALID_STATUSES,
     validate_maintainer_entry,
     validate_rotation_plan,
     validate_rotation_plan_dict,
@@ -180,11 +178,6 @@ def test_validate_dict_missing_entry_fields_fails():
 def test_all_results_have_dry_lab_only_true():
     entries = [_valid_primary(), _valid_secondary()]
     result = validate_rotation_plan(entries)
-    assert result.dry_lab_only
-
-    entry_result_errors = validate_maintainer_entry(_valid_primary())
-    # validate_maintainer_entry returns a list, not a dataclass with dry_lab_only
-    # But RotationPlanValidationResult has it
     assert result.dry_lab_only is True
 
 
