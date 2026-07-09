@@ -1,5 +1,63 @@
 # Roadmap
 
+## v0.6.9 — Loop 109: Phase J J1 — Release Checklist ✓ (2026-07-09)
+
+`docs/governance/RELEASE_CHECKLIST.md` with structured release checklist
+cross-referencing `docs/trust/RELEASE_CHECKLIST.md`.
+
+`src/openamp_foundry/governance/release_gate.py` with `RELEASE_TYPES` (5:
+candidate, model, dataset, evidence_packet, schema), `UNIVERSAL_GATES` (7:
+ci_tests_pass, agent_check_passes, no_critical_issues, dry_lab_only_confirmed,
+safety_flags_reviewed, data_license_verified, no_hardcoded_secrets),
+`EXTRA_GATES_BY_TYPE` (per-type additional gates), `ReleaseGateResult`
+dataclass (8 fields, dry_lab_only=True), `validate_release_gate()` (validates
+all required gates, treats missing gates as failed, raises CRITICAL error
+on dry_lab_only_confirmed failure).
+
+CLI (`openamp-foundry release-gate-check`) with `--release-type`,
+`--artifact-id`, `--gates-json`, `--format text|json`.
+
+`make release-gate-check` target. 18 tests. **3478 total.**
+
+**Starts Phase J (Governance and release maturity)** — releases now require
+all gates to pass before external release, preventing accidental bypass of
+required checks.
+
+Changes:
+- `docs/governance/RELEASE_CHECKLIST.md` — Structured release checklist with
+  pre-release gates, release-type gates (5 types), post-release checklist.
+- `src/openamp_foundry/governance/__init__.py` — Empty package init.
+- `src/openamp_foundry/governance/release_gate.py` (J1) — Core module with
+  `RELEASE_TYPES` (5), `UNIVERSAL_GATES` (7), `EXTRA_GATES_BY_TYPE`,
+  `ReleaseGateResult` (8 fields, dry_lab_only=True),
+  `validate_release_gate()`.
+- `tests/governance/__init__.py` — Empty package init.
+- `tests/governance/test_release_gate.py` (J1) — 18 tests covering all
+  release types, universal gate failure, missing gates, invalid release
+  type, empty artifact_id, dry_lab_only_confirmed CRITICAL error, constant
+  checks.
+- `src/openamp_foundry/cli/commands/gates.py` (J1) — Added
+  `_run_release_gate_check()` CLI handler with JSON parsing,
+  `validate_release_gate()` call, text and JSON output.
+- `src/openamp_foundry/cli/main.py` (J1) — Registered `release-gate-check`
+  subcommand with `--release-type`, `--artifact-id`, `--gates-json`,
+  `--format` flags. Added import and dispatch.
+- `Makefile` (J1) — Added `release-gate-check` target with demo invocation
+  using schema release type with all gates green. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (J1) — v0.6.9 J1 changelog. Pipeline
+  version: v0.6.9. Test count: 3478. Phase J started note.
+- `tests/test_test_count_regression.py` — baseline updated to 3478.
+
+Honest boundaries:
+- Release gate validator can only check what it is told via gate_statuses —
+  if a gate status is incorrectly reported as passing, the validator cannot
+  detect that.
+- The checklist is documentation and automation — it does not replace human
+  judgment about whether a release is appropriate.
+- dry_lab_only flag is always True; the validator enforces this but cannot
+  verify the actual status of external artifacts.
+- No wet-lab validity implied. Gates are dry-lab governance only.
+
 ## v0.6.8 — Loop 108: Phase I I10 — Adoption Scorecard Dashboard ✓ (2026-07-09)
 
 `src/openamp_foundry/adoption/scorecard.py` with `SCORECARD_DIMENSIONS`
