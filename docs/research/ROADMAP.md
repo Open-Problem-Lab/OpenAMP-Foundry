@@ -1762,4 +1762,7 @@ Honest boundaries:
 - Loop 50: Rich Selectivity Scorer (v0.5.16)
 - Loop 49: Charge-Matched Decoy Benchmark (v0.5.39)
 - Loop 48: Bias-Aware Pilot Panel Floor (v0.5.38)
-- Loops 1-47: Foundation phases (v0.1–v0.5.15) — see git log for details.
+- Loop 47: Feature Decomposition Benchmark (v0.5.15) — feature_decomp.py; hydrophobic_fraction and amphipathicity decomposition; AUROC per feature.
+- Loop 46: Wave 0.5 External Screen (v0.5.15) — Wave 0.5 complete; generic future-panel Gate 6 remains panel-specific.
+- Loop 45: Chain-of-Custody Hashing (v0.5.65) — chain_of_custody.json added; --verify-pack CLI flag. These hashes verify identity and archive integrity only. Does not verify synthesis, biological activity, safety, or experimental provenance after receipt.
+- Loops 1-44: Foundation phases (v0.1–v0.5.14) — see git log for details.
