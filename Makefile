@@ -71,6 +71,9 @@ help:
 	@echo "  make ci                 lint + test (CI gate)"
 	@echo "  make clean              Remove outputs/ (except CSV pilot panel)"
 
+pr-ready: agent-check doctor
+	@echo "Ready for PR."
+
 agent-check: claim-check doc-links-check bench-deprecation-check
 
 docs-index-check:
