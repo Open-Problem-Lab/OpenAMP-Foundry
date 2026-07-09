@@ -1,5 +1,50 @@
 # Roadmap
 
+## v0.5.72 — Loop 71: External Review Packet Schemas (Phase E, E1-E3) ✓ (2026-07-09)
+
+External credibility infrastructure: machine-checkable schemas that let external
+reviewers verify what a "review packet" contains before running any experiments.
+
+Changes:
+- `schemas/external_review_packet.schema.json` (E1) — JSON Schema Draft 2020-12
+  defining what a complete external review packet must contain: packet_id, version,
+  generated_at, pipeline_version, git_sha, candidate_count, candidates (array with
+  per-candidate ids/sequences/scores), benchmark_summary, calibration_summary,
+  limitations (array), safety_attestations, dry_lab_only_attestation (bool, must be
+  true), proof_ladder_level, contact.
+- `examples/external_review_packet_example.json` (E2) — toy/example packet validating
+  against E1 schema, clearly marked EXAMPLE/NOT-REAL-DATA throughout.
+- `schemas/reviewer_questionnaire.schema.json` (E3) — schema for structured reviewer
+  feedback: reviewer_id, packet_id, reviewed_at, scientific_validity (1-5),
+  benchmark_adequacy (1-5), safety_concerns (bool), safety_concern_description
+  (conditional-required), recommendation (approve/revise/reject), comments,
+  conflict_of_interest_declared, domain_expertise.
+- `tests/evidence/test_external_review_packet_schema.py` — 13 tests covering valid
+  packet, missing fields, dry_lab_only_attestation=false rejection, git_sha validation,
+  candidate_count minimum, empty limitations, example packet validation, proof_ladder
+  bounds, calibration_assessment enum.
+- `tests/evidence/test_reviewer_questionnaire_schema.py` — 14 tests covering valid
+  questionnaire, missing fields, safety_concerns→description conditional,
+  scientific_validity bounds, recommendation enum, conflict_of_interest→detail
+  conditional, domain_expertise, maximal packet.
+- Removed stale `tests/test_simulation_gate.py` duplicate (naming collision with
+  `tests/simulation/test_simulation_gate.py`). The more comprehensive version in
+  `tests/simulation/` is the canonical home.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.72 changelog. Pipeline version bumped.
+  Test count: 2666.
+- `tests/test_test_count_regression.py` — baseline updated to 2639.
+
+Honest boundaries:
+- These schemas make review packets machine-checkable but do not validate the
+  scientific content of the packet itself.
+- A valid packet can still contain weak science. The schema verifies structure, not
+  truth.
+- The dry_lab_only_attestation is a safety-constraint field that prevents review
+  packets from being mistaken for biological proof, but it relies on the generator's
+  honesty.
+- The example packet contains toy data only and must not be treated as real
+  experimental recommendations.
+
 ## v0.5.71 — Loop 60: Dry-lab Infrastructure Complete ✓ (2026-07-08)
 
 Extended to 60 loops. All dry-lab infrastructure requirements are now met:
