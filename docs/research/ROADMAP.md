@@ -1,5 +1,41 @@
 # Roadmap
 
+## v0.5.71 — Loop 60: Dry-lab Infrastructure Complete ✓ (2026-07-08)
+
+Extended to 60 loops. All dry-lab infrastructure requirements are now met:
+
+**Evidence chain (closed end-to-end):** claim scanner → proof_ladder_level →
+quality-tier validator → forbidden-claim cert test → failed-candidate tracker →
+artifact claim boundary doc → model card.
+
+**Benchmark honesty:** calibration benchmark (Brier 0.32, slope 0.43, documented),
+charge distribution, cheap-enemy comparison, deprecation banner system, test count
+regression gate, cross-config determinism tests.
+
+**Simulation honesty:** cheapest-baseline declarations, fail-closed integration tests,
+uncertainty calibration report, simulation gate (weighted mode blocked).
+
+**Agent workflow:** `make pr-ready`, `make doctor`, `make agent-check`, docs-only
+verifier, docs-index coverage checker, CLI help coverage test, `--version` flag,
+stop-condition examples, maintainer prompts.
+
+**Infrastructure:** 10 JSON schemas validated, 16 packages documented in
+ARCHITECTURE.md, 2427+ test baseline, all configs valid YAML, all scripts
+importable, all packages have __init__.py, exit code registry covers key commands.
+
+**Remaining:** External validation (pre-registered pilot, wet-lab partner, real
+assay results) is the next phase. All dry-lab infrastructure is in place.
+
+Changes:
+- Active learning CLI end-to-end test
+- Selectivity proxy negative control
+- Simulation gate weighted-mode-blocked test
+- Cross-dataset benchmark smoke test
+- Cross-reference docs coverage check
+- `make pr-ready` target
+- `make doctor` CLI diagnostic
+- `make bench-calibration` integrated into bench-500
+
 ## v0.5.70 — Loop 50: Reproducibility Report Polish ✓ (2026-07-06)
 
 Fixed lab_batch_pack check in reproducibility report (was checking for
