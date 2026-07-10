@@ -1,9 +1,9 @@
 """Regression guard: total collected test count must not drop below BASELINE."""
+
 import subprocess
 import sys
 
-
-BASELINE = 7528
+BASELINE = 7843
 TOLERANCE = 0.05
 
 
