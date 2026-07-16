@@ -22,7 +22,7 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > Phase AC AC3 exposes the ACDG-
 > aggregate disconfirming-evidence gate as a repeatable CLI/make workflow. It
 > has 18 focused gate tests plus 2 CLI integration tests. Full pytest
-> collection succeeds at 12,317 tests; this artifact does not establish
+> collection succeeds at 12,318 tests; this artifact does not establish
 > biological validation or benchmark improvement.
 
 ## Changelog
@@ -33,7 +33,8 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
   `input_validation_status` instead of hiding them behind a warning only.
 - `calibration-intake` exits `3` when invalid result files are present.
 - The recalibration gate refuses to proceed when any invalid result file was
-  excluded from the intake report.
+  excluded from the intake report, including when only the structured error
+  list is present in a hand-built report.
 - This change does not establish assay quality, efficacy, safety, or novelty.
 
 ### Phase AA AA6 — Reproducibility gate workflow integration

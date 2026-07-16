@@ -529,8 +529,16 @@ def evaluate_recalibration_gate(
     )
 
     failed_rules = [r for r in rule_results if not r.passed]
-    n_invalid_lab_result_files = int(
-        intake_report.get("n_invalid_lab_result_files", 0) or 0
+    invalid_file_entries = intake_report.get("invalid_lab_result_files", []) or []
+    try:
+        declared_invalid_files = int(
+            intake_report.get("n_invalid_lab_result_files", 0) or 0
+        )
+    except (TypeError, ValueError):
+        declared_invalid_files = 1
+    n_invalid_lab_result_files = max(
+        declared_invalid_files,
+        len(invalid_file_entries) if isinstance(invalid_file_entries, list) else 1,
     )
     may_recalibrate = len(failed_rules) == 0 and n_invalid_lab_result_files == 0
 
