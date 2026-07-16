@@ -1278,6 +1278,26 @@ Honest boundaries:
 - All current entries are "added" and non-breaking; breaking changes are
   expected in future major versions.
 - The changelog is a computational artifact — it records version history,
+  not biological findings.
+- `dry_lab_only: true` applies to all entries — changelogs are inherently
+  dry-lab and must never be presented as validated biological findings.
+
+## v0.6.1 — Loop 101: Phase I I3 — Benchmark Card Schema ✓ (2026-07-09)
+
+`schemas/benchmark_card.schema.json` (Draft 2020-12, 15 required fields:
+benchmark_id, benchmark_name, version, date, metric, metric_value, baseline_name,
+baseline_value, delta, beats_baseline, dataset, dataset_size, scope, caveats,
+dry_lab_only). `$schema`, `$id`, `title`, `additionalProperties: false`.
+
+`src/openamp_foundry/benchmarks/` module with `BenchmarkCard` dataclass
+(15 fields), `make_benchmark_card()` (auto-computes delta, beats_baseline),
+`validate_benchmark_card()` (10 checks: non-empty benchmark_id, non-empty
+benchmark_name, non-empty metric, non-empty dataset, non-empty baseline_name,
+dataset_size >= 1, delta matches metric_value - baseline_value within 1e-9,
+beats_baseline matches delta > 0, dry_lab_only must be True),
+`benchmark_card_summary()` (total, beats_baseline_count, fails_baseline_count,
+dry_lab_only).
+
 CLI (`openamp-foundry benchmark-card`) with `--benchmark-id`, `--benchmark-name`,
 `--metric`, `--metric-value`, `--baseline-name`, `--baseline-value`, `--dataset`,
 `--dataset-size`, `--validate`, `--format text|json`.
