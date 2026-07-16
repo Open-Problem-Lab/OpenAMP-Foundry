@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 38410)
-Total output lines: 2537
-
 # Roadmap
 
 ## Current state — 2026-07-15
@@ -81,86 +78,6 @@ result intake.
 ### v0.9.5 — Phase N N2: Hypothesis Outcome Record
 - Added `HypothesisOutcomeEntry` schema linking pre-registration to actual experimental outcomes
 - Records confirmed/refuted/inconclusive/partially_confirmed verdicts with observed metric value
-- Warns on threshold/verdict inconsistency and undocumented inconclusive deviations
-- dry_lab_only=False supported (real lab data can be recorded)
-- CLI: `openamp-foundry hypothesis-outcome-check`
-- 48 tests; all passing
-
-### v0.9.4 — Phase N N1: Pre-Registration Form (starts Phase N)
-- Added `PreRegistrationEntry` schema for machine-verifiable experiment pre-commitment
-- Records hypothesis, outcome metric, success threshold, and baseline comparators before results are observed
-- Prevents HARKing (Hypothesising After Results are Known)
-- Warns when random baseline is absent, hypothesis is underspecified, or statistical test is a placeholder
-- CLI: `openamp-foundry pre-registration-check`
-- 62 tests; all passing
-
-### v0.9.3 — Phase M M5: Audit Chain Completeness Checker (Completes Phase M)
-- Added `AuditChainEntry` schema validating all 9 evidence chain links exist for a batch
-- Detects gaps from sequence input through benchmark, filter, scoring, selection, certificate, claims, decision audit, and reviewer briefing
-- missing_links consistency check catches declaration errors
-- CLI: `openamp-foundry audit-chain-check`
-- 39 tests; all passing
-- Phase M (Audit Trail Infrastructure) complete
-
-### v0.9.2 — Phase M M4: Reviewer Briefing Package
-- Added `ReviewerBriefingEntry` schema for one-stop external auditor handoff packages
-- Validates CoI declaration, minimum artifact count, scope, candidate count
-- 4 warning conditions: large batch, underfocused questions, long scope, minimal artifacts
-- CLI: `openamp-foundry reviewer-briefing-check`
-- 52 tests; all passing
-
-### v0.9.1 — Phase M M3: Score Decomposition Report
-- Added `ScoreDecompositionEntry` schema documenting how composite scores decompose into components
-- 6 valid scoring methods; weight-sum tolerance; dominant/unbalanced/low-score warnings
-- CLI: `openamp-foundry score-decomposition-check`
-- 54 tests; all passing
-
-### v0.9.0 — Phase M M2: Claim-to-Evidence Mapper
-- Added `ClaimToEvidenceEntry` schema mapping each claim to supporting artifacts
-- 7 valid claim types; 4 warning conditions for exploratory or weakly-evidenced claims
-- CLI: `openamp-foundry claim-to-evidence-check`
-- 50 tests; all passing
-
-### v0.8.9
-- Phase M M1: pipeline decision audit entry schema — records each filter/threshold/rank decision with rationale and alternatives considered for external audit. PipelineDecisionAuditEntry dataclass, validate_pipeline_decision_audit(), CLI pipeline-decision-audit-check.
-
-### v0.8.8
-- Phase L L5: dataset release package checker — validates that open dataset releases meet data governance requirements (license, provenance, dual-use assessment, release approval). DatasetReleaseEntry dataclass, validate_dataset_release(), CLI dataset-release-check. Completes Phase L.
-
-### v0.8.7
-- Phase L L4: multi-candidate comparison schema — validates structured side-by-side comparisons of two or more candidates for publication-ready supplementary tables. MultiCandidateComparisonEntry dataclass, validate_multi_candidate_comparison(), CLI multi-candidate-comparison-check.
-
-### v0.8.6
-- Phase L L3: candidate summary card schema — validates publication-ready per-candidate structured summaries with sequence, evidence level, activity prediction, and safety flags. CandidateSummaryCardEntry dataclass, validate_candidate_summary_card(), CLI candidate-summary-card-check.
-
-### v0.8.5
-- Phase L L2: reproducibility manifest schema — captures exact software versions, data checksums, and random seeds for a pipeline run. ReproducibilityManifestEntry dataclass, validate_reproducibility_manifest(), CLI reproducibility-manifest-check.
-
-### v0.8.4
-- Phase L L1: preprint evidence bundle schema — ties K-phase artifacts into a submission-ready record for scientific preprints. PreprintBundleEntry dataclass, validate_preprint_bundle(), CLI preprint-bundle-check.
-
-### v0.8.3
-- Phase K K5: uncertainty quantification report schema — validates prediction intervals, confidence levels, and calibration source for dry-lab candidate recommendations. UncertaintyReportEntry dataclass, validate_uncertainty_report(), CLI uncertainty-report-check.
-
-### v0.8.2
-- Phase K K4: post-experiment calibration intake schema — captures structured comparison of pipeline dry-lab prediction against actual experimental outcome. CalibrationIntakeEntry dataclass (dry_lab_only=False enforced), validate_calibration_intake(), CLI calibration-intake-check.
-
-## v0.8.1 — Loop 121: Phase K K3 — Pilot Package Completeness Checker
-
-`docs/evidence/PILOT_PACKAGE_GUIDE.md` with purpose, required field table (11
-fields), mandatory artifact types table (3 types: selection_rationale,
-batch_priority, evidence_certificate), valid artifact types (8 types), warnings,
-validation workflow, honest-use boundary.
-
-`src/openamp_foundry/evidence/pilot_package.py` with `PilotPackageEntry`
-dataclass (11 fields, dry_lab_only=True enforced), `PilotPackageResult`
-dataclass (5 fields, dry_lab_only=True), `MINIMUM_REQUIRED_ARTIFACTS` (3),
-`READINESS_SCORE_THRESHOLD` (0.80), `MANDATORY_ARTIFACT_TYPES` (3:
-batch_priority, evidence_certificate, selection_rationale),
-`VALID_ARTIFACT_TYPES` (8 types), `validate_pilot_package()` (11 checks, 3
-warning conditions: missing artifacts, low completeness score, same
-reviewer/approver), `validate_pilot_package_dict()` (10 required fields guard).
-
 CLI: `openamp-foundry pilot-package-check`. `make pilot-package-check` target.
 **v0.8.1 milestone** — every pilot submission is machine-validated for
 completeness before external lab submission.
@@ -481,86 +398,6 @@ Honest boundaries:
 template (purpose, fill-in-the-blank format with 10 fields: Disclosure ID
 COI-YYYY-NNN, disclosure type reviewer|contributor|maintainer|external_advisor,
 subject GitHub handle, related artifact or PR, relationship type
-financial|institutional|competitive|personal|none, description (required unless
-none), date YYYY-MM-DD, recusal_required true|false, reviewer GitHub handle,
-review_status pending|acknowledged|resolved).
-
-`src/openamp_foundry/governance/coi_disclosure.py` with `COIDisclosure`
-dataclass (10 fields), `COIValidationResult` dataclass (6 fields,
-dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4: contributor, external_advisor,
-maintainer, reviewer), `VALID_RELATIONSHIP_TYPES` (5: competitive, financial,
-institutional, none, personal), `VALID_REVIEW_STATUSES` (3: acknowledged,
-pending, resolved), `validate_coi_disclosure()` (10 checks: disclosure_id
-starts with COI-, valid disclosure_type, non-empty subject/related_artifact,
-valid relationship_type, description required unless none, YYYY-MM-DD date,
-non-empty reviewer, valid review_status, dry_lab_only must be True; financial
-without recusal yields warning not error), `validate_coi_dict()` (dict input
-with 10 required fields guard).
-
-CLI (`openamp-foundry coi-check`) with `--disclosure-json` (required),
-`--format text|json`. Handler `_run_coi_check` in reports.py.
-
-`make coi-check` target. 20 tests. **3536 total.**
-
-COI disclosures now have a validated structure that builds institutional trust.
-
-Changes:
-- `docs/governance/COI_DISCLOSURE_TEMPLATE.md` (J4) — Structured COI disclosure
-  template with purpose, template (10 fields), when to disclose (financial,
-  institutional, competitive, personal), process (5 steps with escalation).
-- `src/openamp_foundry/governance/coi_disclosure.py` (J4) — Core module with
-  `COIDisclosure` (10 fields), `COIValidationResult` (6 fields,
-  dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4), `VALID_RELATIONSHIP_TYPES`
-  (5), `VALID_REVIEW_STATUSES` (3), `validate_coi_disclosure()` (10 checks),
-  `validate_coi_dict()` (dict input with 10 required fields guard).
-- `tests/governance/test_coi_disclosure.py` (J4) — 20 tests covering: valid
-  reviewer none relationship passes, valid contributor financial passes,
-  disclosure_id not starting with COI- fails, empty disclosure_id fails, invalid
-  disclosure_type fails, empty subject fails, empty related_artifact fails,
-  invalid relationship_type fails, relationship not none with empty description
-  fails, relationship none with empty description passes, invalid date format
-  fails, empty reviewer fails, invalid review_status fails, dry_lab_only=False
-  fails, financial without recusal warns, validate_coi_dict passes, validate_
-  coi_dict with missing fields fails, all results dry_lab_only=True,
-  VALID_DISCLOSURE_TYPES has 4, VALID_RELATIONSHIP_TYPES has 5.
-- `src/openamp_foundry/cli/main.py` (J4) — Registered `coi-check` subcommand
-  with `--disclosure-json`, `--format` flags. Added import and dispatch.
-- `src/openamp_foundry/cli/commands/reports.py` (J4) — Added `_run_coi_check()`
-  CLI handler with JSON parsing, validate_coi_dict call, text and JSON output,
-  exit code 3 on validation failure.
-- `Makefile` (J4) — Added `coi-check` target. Added to `.PHONY`.
-- `docs/evidence/METRICS_CURRENT.md` (J4) — v0.7.2 J4 changelog. Pipeline
-  version: v0.7.2. Test count: 3536.
-- `tests/test_test_count_regression.py` — baseline updated to 3536.
-
-Honest boundaries:
-- COI disclosure validation checks structural and policy requirements only.
-  It does not verify that the disclosed information is true, complete, or
-  accurate.
-- Financial relationship without recusal produces a warning, not an error —
-  the reviewer retains discretion to determine whether recusal is necessary.
-- The validator cannot detect undisclosed conflicts — it only checks that
-  disclosed conflicts are well-formed.
-- `dry_lab_only: true` is a const field on all dataclasses — COI disclosures
-  are governance artifacts, not legal determinations.
-- The COI template is a transparency and governance tool — it does not replace
-  the judgment of the human reviewer or governance team.
-
-## v0.7.1 — Loop 111: Phase J J3 — Release Request Template ✓ (2026-07-09)
-
-`docs/governance/RELEASE_REQUEST_TEMPLATE.md` with structured release request
-template (purpose, fill-in-the-blank format with 17 fields: Release ID,
-release type, artifact ID/version, requestor name/institution, request date,
-evidence level 1-6, dry_lab_only, safety_review_status, benchmark_summary,
-known_limitations, intended_use, data_license, human_reviewer, review_class
-A-D, approval_status; review criteria with 8 checks; process with classes A-D
-timelines and escalation path).
-
-`src/openamp_foundry/governance/release_request.py` with `ReleaseRequest`
-dataclass (17 fields), `ReleaseRequestValidationResult` dataclass (6 fields,
-dry_lab_only=True), `VALID_RELEASE_TYPES` (5: candidate, model, dataset,
-evidence_packet, schema), `VALID_SAFETY_STATUSES` (3: pending, approved,
-not_required), `VALID_INTENDED_USES` (4: research, internal, external_partner,
 public), `VALID_APPROVAL_STATUSES` (4: pending, approved, rejected, deferred),
 `VALID_REVIEW_CLASSES` (4: A, B, C, D), `validate_release_request()` (17 checks:
 release_id format, release_type valid, non-empty artifact_id/artifact_version/
@@ -810,7 +647,967 @@ Changes:
   checks.
 - `src/openamp_foundry/cli/commands/gates.py` (J1) — Added
   `_run_release_gate_check()` CLI handler with JSON parsing,
-  `validate_release_gate()`…14410 tokens truncated…-id`, `--module-id`, `--module-version`, `--timestamp-utc`,
+  `validate_release_gate()` call, text and JSON output.
+- `src/openamp_foundry/cli/main.py` (J1) — Registered `release-gate-check`
+  subcommand with `--release-type`, `--artifact-id`, `--gates-json`,
+  `--format` flags. Added import and dispatch.
+- `Makefile` (J1) — Added `release-gate-check` target with demo invocation
+  using schema release type with all gates green. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (J1) — v0.6.9 J1 changelog. Pipeline
+  version: v0.6.9. Test count: 3478. Phase J started note.
+- `tests/test_test_count_regression.py` — baseline updated to 3478.
+
+Honest boundaries:
+- Release gate validator can only check what it is told via gate_statuses —
+  if a gate status is incorrectly reported as passing, the validator cannot
+  detect that.
+- The checklist is documentation and automation — it does not replace human
+  judgment about whether a release is appropriate.
+- dry_lab_only flag is always True; the validator enforces this but cannot
+  verify the actual status of external artifacts.
+- No wet-lab validity implied. Gates are dry-lab governance only.
+
+## v0.6.8 — Loop 108: Phase I I10 — Adoption Scorecard Dashboard ✓ (2026-07-09)
+
+`src/openamp_foundry/adoption/scorecard.py` with `SCORECARD_DIMENSIONS`
+(5 weighted dimensions summing to 1.0: integration_check 0.25,
+license_compliance 0.20, adapter_validation 0.20, schema_compatibility 0.20,
+contribution_readiness 0.15), `ADOPTION_TIERS` (4 tiers: not_ready 0.0-0.40,
+emerging 0.40-0.65, established 0.65-0.85, mature 0.85-1.01),
+`DimensionScore` dataclass (8 fields: dimension, weight, raw_score,
+weighted_score, passed_checks, total_checks, notes, dry_lab_only=True),
+`AdoptionScorecard` dataclass (6 fields: total_score, adoption_tier,
+dimensions, summary, recommendations, dry_lab_only=True),
+`build_scorecard()` (aggregates dimension inputs into weighted total score
+with tier classification and actionable recommendations),
+`compute_adoption_tier()` (maps float score 0.0-1.0 to tier string).
+
+CLI (`openamp-foundry adoption-scorecard`) with `--scores-json` and
+`--format text|json`. Handler `_run_adoption_scorecard` in reports.py.
+
+`make adoption-scorecard` target. 17 tests. **3446 total.**
+
+**Phase I (Interoperability and Adoption) is now fully complete** — all 10
+items I1–I10 implemented (artifact versioning, candidate manifest, benchmark
+card, artifact changelog, integration checker, adapter validator, data license
+checker, schema compatibility, contribution intake, adoption scorecard).
+
+Changes:
+- `src/openamp_foundry/adoption/scorecard.py` (I10) — Core module with
+  `SCORECARD_DIMENSIONS` (5 weighted dimensions summing to 1.0),
+  `ADOPTION_TIERS` (4 tiers), `DimensionScore` (8 fields, dry_lab_only=True
+  default), `AdoptionScorecard` (6 fields, dry_lab_only=True default),
+  `build_scorecard()` (aggregates dimension inputs into weighted total score,
+  tier, and per-dimension scores with recommendations),
+  `compute_adoption_tier()` (maps float 0.0-1.0 to tier string).
+- `tests/adoption/__init__.py` (I10) — Empty package init.
+- `tests/adoption/test_scorecard.py` (I10) — 17 tests covering: perfect scores
+  → mature, all zeros → not_ready, score 0.50 → emerging, score 0.75 →
+  established, weights sum to 1.0, SCORECARD_DIMENSIONS has 5 entries,
+  ADOPTION_TIERS has 4 entries, DimensionScore dry_lab_only=True default,
+  AdoptionScorecard dry_lab_only=True default, recommendations empty when
+  all pass, recommendations populated on failures, weighted sum correctness,
+  missing dimension defaults to 0/0, compute_adoption_tier boundaries,
+  build_scorecard returns correct fields.
+- `src/openamp_foundry/cli/main.py` (I10) — Registered `adoption-scorecard`
+  subcommand with `--scores-json` (required), `--format` flags. Added import
+  and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I10) — Added
+  `_run_adoption_scorecard()` CLI handler with JSON parsing, `build_scorecard`
+  call, text and JSON output.
+- `Makefile` (I10) — Added `adoption-scorecard` target with demo invocation
+  using all 5 dimensions at perfect scores. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (I10) — v0.6.8 I10 changelog. Pipeline
+  version: v0.6.8. Test count: 3446. Phase I complete note.
+- `tests/test_test_count_regression.py` — baseline updated to 3446.
+
+Honest boundaries:
+- Scorecard measures adoption readiness only — whether the checks pass or fail.
+  It does not measure actual downstream adoption, user satisfaction, or
+  biological validity.
+- Dimension weights are heuristic and may need adjustment as adoption data
+  accumulates. The current weights (integration 0.25, license 0.20, adapter
+  0.20, schema 0.20, contribution 0.15) are the initial guess.
+- `dry_lab_only: true` is a const field on all dataclasses — the scorecard is
+  a computational governance tool, not a biological assessment.
+- The scorecard aggregates structural signals from other Phase I modules. If
+  any of those modules have blind spots, the aggregation inherits them.
+- Perfect scores mean all structural checks pass, not that real-world adoption
+  is happening. Adoption is a social outcome, not a pipeline metric.
+
+## v0.6.7 — Loop 107: Phase I I9 — Public-Good Contribution Guide ✓ (2026-07-09)
+
+`docs/community/PUBLIC_GOOD_CONTRIBUTION_GUIDE.md` with 6 contribution types
+(wet_lab_validation, dataset_donation, compute_sponsorship, expert_review,
+governance_participation, algorithm_contribution), review classes A-D, minimum
+requirements table, initiation process, data governance, and safety constraints.
+
+`src/openamp_foundry/community/contribution_intake.py` with `ContributionIntake`
+dataclass (7 fields: institution_name, contact_email, contribution_type,
+proposed_scope, human_review_required, dry_lab_only, extra_fields),
+`IntakeValidationResult` dataclass (7 fields: institution_name, contribution_type,
+passed, errors, warnings, required_review_class, dry_lab_only),
+`VALID_CONTRIBUTION_TYPES` set (6 entries), `VALID_REVIEW_CLASSES` set (4 entries),
+`REQUIRED_FIELDS_BY_TYPE` dict (6 entries). `validate_contribution_intake()` checks
+all top-level fields (institution_name, contact_email, contribution_type,
+proposed_scope, dry_lab_only), type-specific required fields from
+REQUIRED_FIELDS_BY_TYPE, and enforces human_review_required=True for
+wet_lab_validation. `validate_intake_dict()` handles raw dict input with
+missing-fields guard.
+
+CLI (`openamp-foundry contribution-check`) with `--intake-json` and
+`--format text|json`. Handler `_run_contribution_check` in reports.py.
+
+`make contribution-check` target. 16 tests. **3429 total.**
+
+Changes:
+- `docs/community/PUBLIC_GOOD_CONTRIBUTION_GUIDE.md` (I9) — Full public-good
+  contribution guide with purpose, who can contribute, 6 contribution types
+  table, minimum requirements, initiation process, data governance, safety
+  constraints, and contact information.
+- `src/openamp_foundry/community/__init__.py` (I9) — Empty package init.
+- `src/openamp_foundry/community/contribution_intake.py` (I9) — Core module
+  with `ContributionIntake` (7 fields), `IntakeValidationResult` (7 fields),
+  `VALID_CONTRIBUTION_TYPES` (6 entries), `VALID_REVIEW_CLASSES` (4 entries),
+  `REQUIRED_FIELDS_BY_TYPE` (6 entries), `validate_contribution_intake()`,
+  `validate_intake_dict()`. All dataclasses carry dry_lab_only=True.
+- `tests/community/__init__.py` (I9) — Empty package init.
+- `tests/community/test_contribution_intake.py` (I9) — 16 tests covering:
+  valid dataset_donation passes, valid wet_lab_validation with human_review
+  passes, empty institution_name fails, invalid email fails, invalid
+  contribution_type fails, empty proposed_scope fails, dry_lab_only=False
+  fails, wet_lab_validation without human_review fails, dataset_donation
+  missing data_license fails, algorithm_contribution missing has_tests fails,
+  all results have dry_lab_only=True, validate_intake_dict passes, dict
+  missing field fails, VALID_CONTRIBUTION_TYPES has 6 entries,
+  REQUIRED_FIELDS_BY_TYPE has 6 keys, wet_lab_validation gets review_class D.
+- `src/openamp_foundry/cli/main.py` (I9) — Registered `contribution-check`
+  subcommand with `--intake-json` (required), `--format` flags. Added import
+  and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I9) — Added
+  `_run_contribution_check()` CLI handler with JSON parsing, ContributionIntake
+  creation, text and JSON output, and exit code 3 on failure.
+- `Makefile` (I9) — Added `contribution-check` target with demo invocation
+  using Example University dataset_donation. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (I9) — v0.6.7 I9 changelog. Pipeline
+  version: v0.6.7. Test count: 3429.
+- `tests/test_test_count_regression.py` — baseline updated to 3429.
+
+Honest boundaries:
+- Contribution validation checks structural and policy requirements only.
+  It does not verify that the institution actually has the right to share
+  the data or that the data is biologically meaningful.
+- `dry_lab_only: true` is a const field on all dataclasses — contribution
+  intake is inherently computational and must never be presented as
+  biological proof.
+- wet_lab_validation always requires human_review_required=True — this is
+  a structural check that the flag is set, not verification that human
+  review actually occurred.
+- Data governance (DATA_GOVERNANCE.md, DATA_LICENSE_NOTICE.md) applies to
+  all contributed datasets regardless of whether the intake check passes.
+- The contribution guide is informational and aspirational. Actual
+  acceptance and review outcomes depend on maintainer capacity and
+  project priorities.
+
+## v0.6.6 — Loop 106: Phase I I8 — Artifact Compatibility Tests ✓ (2026-07-09)
+
+`src/openamp_foundry/compatibility/artifact_compatibility.py` with
+`SchemaCompatibilityResult` dataclass (5 fields: schema_name, schema_path, passed,
+errors, warnings, dry_lab_only=True). `UNIVERSAL_REQUIRED_FIELDS` (set: dry_lab_only,
+version). `CONVENTION_CHECKS` (dict: dry_lab_only → boolean const true, version →
+string matching MAJOR.MINOR.PATCH, evidence_level → integer in 1-6 when present).
+`check_schema_conventions()` validates each schema against universal conventions.
+`run_compatibility_check()` scans all schemas/*.schema.json and returns
+total/passed/failed/all_passed/results/dry_lab_only.
+
+CLI (`openamp-foundry artifact-compat-check`) with `--schemas-dir` (default:
+schemas/) and `--format text|json`. Handler `_run_artifact_compat_check` in
+reports.py.
+
+`make artifact-compat-check` target. 20 tests. **3413 total.** Cross-artifact
+schema compatibility is automatically checked across all schema files, preventing
+drift between artifact versions.
+
+Changes:
+- `src/openamp_foundry/compatibility/__init__.py` (I8) — Empty package init.
+- `src/openamp_foundry/compatibility/artifact_compatibility.py` (I8) — Core module
+  with `SchemaCompatibilityResult` (5 fields, dry_lab_only=True default),
+  `UNIVERSAL_REQUIRED_FIELDS`, `CONVENTION_CHECKS`, `check_schema_conventions()`,
+  `run_compatibility_check()`.
+- `tests/compatibility/__init__.py` (I8) — Empty package init.
+- `tests/compatibility/test_artifact_compatibility.py` (I8) — 20 tests covering
+  candidate_manifest/benchmark_card passes, simulation_result detected (known
+  dry_lab_context convention difference), synthetic schemas with missing/misformed
+  fields, run_compatibility_check dict shape, SchemaCompatibilityResult defaults,
+  additionalProperties/$schema warnings.
+- `src/openamp_foundry/cli/main.py` (I8) — Registered `artifact-compat-check`
+  subcommand with `--schemas-dir`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I8) — Added
+  `_run_artifact_compat_check()` CLI handler with text and JSON output, exit code 3
+  on failure.
+- `Makefile` (I8) — Added `artifact-compat-check` target. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (I8) — Updated last updated, new in v0.6.6,
+  pipeline version, test count (3393→3413).
+
+## v0.6.5 — Loop 105: Phase I I7 — Data License Checker ✓ (2026-07-09)
+
+`src/openamp_foundry/licensing/license_checker.py` with `DataLicenseDeclaration`
+dataclass (11 fields: source_id, source_name, license_id, use_context,
+attribution_required, commercial_use_allowed, redistribution_allowed,
+modifications_allowed, human_review_required, notes, dry_lab_only).
+`LicenseCheckResult` dataclass (8 fields: source_id, license_id, use_context,
+passed, status, errors, warnings, dry_lab_only). `check_data_license()` validates
+declarations against three license sets: `APPROVED_LICENSES` (11 entries: CC0-1.0,
+CC-BY-4.0, CC-BY-SA-4.0, MIT, Apache-2.0, GPL-3.0, LGPL-2.1, BSD-2-Clause,
+BSD-3-Clause, ODbL-1.0, PDDL-1.0), `RESTRICTED_LICENSES` (4 entries: CC-BY-NC-4.0,
+CC-BY-NC-SA-4.0, custom, proprietary), `BLOCKED_LICENSES` (3 entries: unknown,
+unlicensed, all-rights-reserved). Blocked licenses fail immediately; restricted
+require human_review_required=True; unknown licenses require governance review.
+`check_license_batch()` summarizes total/passed/failed/blocked/any_blocked/
+all_passed with dry_lab_only=True. `VALID_USE_CONTEXTS` (6 entries: training,
+scoring, benchmarking, reporting, publication, internal).
+
+CLI (`openamp-foundry license-check`) with `--source-json` (required) and
+`--format text|json`. Handler `_run_license_check` in reports.py.
+
+`make license-check` target. 20 tests. **3393 total.** External data sources
+used in pipeline outputs now require explicit license declarations, preventing
+hidden legal risk. This is Loop 105 — the 105th PR in the NEXT_100_PR_MAP series.
+
+Changes:
+- `src/openamp_foundry/licensing/__init__.py` (I7) — Empty package init.
+- `src/openamp_foundry/licensing/license_checker.py` (I7) — Core module with
+  `DataLicenseDeclaration` (11 fields), `LicenseCheckResult` (8 fields),
+  `check_data_license()` (validates against APPROVED_LICENSES 11 entries,
+  RESTRICTED_LICENSES 4, BLOCKED_LICENSES 3, VALID_USE_CONTEXTS 6),
+  `check_license_batch()` (summary with counts, any_blocked, all_passed,
+  dry_lab_only=True). All dataclasses carry dry_lab_only=True.
+- `tests/licensing/__init__.py` (I7) — Empty package init.
+- `tests/licensing/test_license_checker.py` (I7) — 20 tests covering: valid CC0
+  passes, valid MIT passes, blocked unknown/unlicensed/all-rights-reserved fail,
+  restricted CC-BY-NC-4.0 without human_review fails, restricted with human_review
+  passes, empty source_id/source_name/license_id fail, invalid use_context fails,
+  dry_lab_only=False fails, publication without redistribution fails, unknown
+  license gets status=unknown_license, batch counts correct, all results
+  dry_lab_only, constant counts.
+- `src/openamp_foundry/cli/main.py` (I7) — Registered `license-check` subcommand
+  with `--source-json`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I7) — Added `_run_license_check()`
+  CLI handler with JSON parsing, DataLicenseDeclaration creation, text and JSON
+  output, and exit code 3 on failure.
+- `Makefile` (I7) — Added `license-check` target with demo invocation using
+  apd-v2 source and CC-BY-4.0 license. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.5 I7 changelog. Test count: 3393.
+- `tests/test_test_count_regression.py` — baseline updated to 3393.
+
+Honest boundaries:
+- License validation checks declared license identifiers against known lists.
+  It does not verify that the data source actually uses the declared license,
+  that the license is legally enforceable in a given jurisdiction, or that the
+  data was lawfully obtained.
+- Approved and blocked lists are policy-defined and may need updating as the
+  legal landscape evolves.
+- `dry_lab_only: true` is a const field on all dataclasses — license checks
+  are inherently computational and must never be presented as legal advice.
+- External adapter authors who produce data from new sources must declare their
+  licenses before those data can influence pipeline outputs.
+- Restricted licenses require human_review_required=True — this is a structural
+  check that the flag is set, not verification that human review actually occurred.
+
+## v0.6.4 — Loop 104: Phase I I6 — Adapter Author Validator ✓ (2026-07-09)
+
+`src/openamp_foundry/adapters/adapter_validator.py` with `AdapterDeclaration`
+dataclass (14 fields: adapter_id, adapter_version, mode, output_status,
+score_fields, uncertainty, warnings, failure_reason, release_status,
+ranking_effect, has_baseline_comparison, makes_network_calls,
+network_call_documented, dry_lab_only). `AdapterValidationResult` dataclass
+(5 fields: adapter_id, passed, errors, warnings_list, dry_lab_only).
+`validate_adapter_declaration()` with 10 checks covering all fields against
+their valid value sets (VALID_ADAPTER_MODES, VALID_OUTPUT_STATUSES,
+VALID_RANKING_EFFECTS, VALID_RELEASE_STATUSES) plus cross-field rules
+(baseline comparison required for ranking_effect=proposed/active, network
+call documentation required when makes_network_calls=True, deprecated mode
+must not have active/proposed ranking_effect, uncertainty must be 0.0-1.0
+or None, dry_lab_only must be True). Gated mode with ranking_effect=none
+produces a warning. `validate_adapter_dict()` for raw dict validation with
+missing-fields guard.
+
+CLI (`openamp-foundry adapter-check`) with `--adapter-json` (required) and
+`--format text|json`. Handler `_run_adapter_check` in reports.py.
+
+`make adapter-author-check` target. 31 tests. **3387 total.** External adapter
+authors can now validate their declarations against the ADAPTER_AUTHOR_GUIDE
+contract before submitting. This is Loop 104 — the 104th PR in the
+NEXT_100_PR_MAP series.
+
+Changes:
+- `src/openamp_foundry/adapters/__init__.py` (I6) — Empty package init.
+- `src/openamp_foundry/adapters/adapter_validator.py` (I6) — Core module
+  with AdapterDeclaration (14 fields), AdapterValidationResult (5 fields),
+  validate_adapter_declaration (10 checks), validate_adapter_dict (dict
+  input with missing-fields guard), 4 valid-value sets (VALID_ADAPTER_MODES,
+  VALID_OUTPUT_STATUSES, VALID_RANKING_EFFECTS, VALID_RELEASE_STATUSES),
+  REQUIRED_OUTPUT_CONTRACT_FIELDS (10 items). All dataclasses carry
+  dry_lab_only=True.
+- `tests/adapters/__init__.py` (I6) — Empty package init.
+- `tests/adapters/test_adapter_validator.py` (I6) — 31 tests covering:
+  valid minimal declaration, empty adapter_id/version, invalid mode/output_
+  status/ranking_effect/release_status, dry_lab_only=False, ranking_effect
+  active/proposed requires baseline, network calls require documentation,
+  deprecated+active ranking, uncertainty range, None uncertainty passes,
+  gated+none warning, all valid modes/output_statuses parametrized, result
+  dry_lab_only, valid dict, missing fields in dict, constants counts.
+- `src/openamp_foundry/cli/main.py` (I6) — Registered `adapter-check`
+  subcommand with `--adapter-json`, `--format` flags. Added import and
+  dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I6) — Added
+  `_run_adapter_check()` CLI handler with JSON parsing, text and JSON
+  output, adapter validation, and error handling.
+- `Makefile` (I6) — Added `adapter-author-check` target with demo
+  invocation using example-adapter. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.4 I6 changelog. Fixed > >
+  formatting bug on v0.6.2 line. Test count: 3387.
+- `tests/test_test_count_regression.py` — baseline updated to 3373.
+
+Honest boundaries:
+- Adapter validation checks structural and policy requirements only. It
+  does not verify that the adapter produces biologically meaningful outputs
+  or that the adapter implementation is correct.
+- Valid value sets are policy-defined and may need updating as the adapter
+  ecosystem evolves.
+- The validator accepts declarative metadata only — it does not run the
+  adapter or verify its behavior at runtime.
+- `dry_lab_only: true` is a const field on all dataclasses — adapters are
+  inherently dry-lab and must never be presented as biological proof.
+- Safety, toxicity, and dual-use safeguards are preserved — the validator
+  enforces no-ranking-effect for deprecated adapters, baseline comparison
+  for active adapters, and documentation for network calls.
+
+## v0.6.3 — Loop 103: Phase I I5 — Downstream Project Template ✓ (2026-07-09)
+
+`docs/adoption/DOWNSTREAM_PROJECT_TEMPLATE.md` with overview of OpenAMP
+artifacts (candidate manifests, benchmark cards, evidence certificates,
+simulation results — all dry-lab only), minimum viable integration steps
+(consume candidate manifest, validate against schema, use Python library),
+schema validation guide against `candidate_manifest.schema.json`, evidence
+level interpretation table (L1-L6 with labels, meanings, and caveats),
+safety flag conventions table (6 flags with meanings and suggested actions),
+benchmark card consumption guide with comparison against baselines, explicit
+dry-lab limitations section, and contact/contribution section.
+
+`src/openamp_foundry/adoption/integration_checker.py` with
+`REQUIRED_INTEGRATION_CHECKS` list (5 checks: manifest_schema_valid,
+evidence_level_in_range, dry_lab_only_acknowledged, safety_flags_reviewed,
+baseline_comparison_present). `IntegrationCheckResult` dataclass (4 fields:
+check_name, passed, detail, dry_lab_only). `run_integration_checks()` that
+validates a manifest dict against all 5 checks and returns checks list,
+passed_count, failed_count, all_passed, dry_lab_only.
+
+Exported from `src/openamp_foundry/adoption/__init__.py`.
+
+CLI (`openamp-foundry integration-check`) with `--manifest-json` (required,
+JSON of candidate manifest dict), `--format text|json`. `make integration-check`
+target. Handler `_run_integration_check` in reports.py.
+
+14 tests. **3356 total.** External researchers who want to use OpenAMP
+artifacts in their own pipelines now have a guide that shows them the minimum
+viable integration: how to consume a candidate manifest, validate it, and
+produce their own evidence packet.
+
+Changes:
+- `docs/adoption/DOWNSTREAM_PROJECT_TEMPLATE.md` (I5) — Full downstream
+  project guide with integration steps, schema validation, evidence table,
+  safety flags, benchmark card consumption, dry-lab limitations.
+- `src/openamp_foundry/adoption/__init__.py` (I5) — Package init, exports
+  `REQUIRED_INTEGRATION_CHECKS`, `IntegrationCheckResult`,
+  `run_integration_checks`.
+- `src/openamp_foundry/adoption/integration_checker.py` (I5) — Core module
+  with `REQUIRED_INTEGRATION_CHECKS` (5 items), `IntegrationCheckResult`
+  dataclass (4 fields), `run_integration_checks()` (5 checks against
+  manifest dict, returns dict with checks, counts, all_passed, dry_lab_only).
+- `src/openamp_foundry/cli/main.py` (I5) — Registered `integration-check`
+  subcommand with `--manifest-json`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I5) — Added
+  `_run_integration_check()` CLI handler with JSON parsing, text and JSON
+  output, integration check execution, and error handling.
+- `Makefile` (I5) — Added `integration-check` target with demo invocation
+  using AMP-001 manifest. Added to `.PHONY`.
+- `tests/adoption/__init__.py` (I5) — Empty package init.
+- `tests/adoption/test_integration_checker.py` (I5) — 14 tests covering:
+  valid manifest all_passed=True, missing candidate_id fails, level=0 fails,
+  level=7 fails, dry_lab_only=False fails, dry_lab_only key missing fails,
+  safety_flags key missing fails, empty scores fails, all checks return
+  dry_lab_only=True, REQUIRED_INTEGRATION_CHECKS has 5 entries,
+  run_integration_checks returns dry_lab_only=True, passed+failed=5,
+  valid manifest failed_count=0, IntegrationCheckResult dataclass
+  constructor.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.3 I5 changelog. Test count: 3356.
+- `tests/test_test_count_regression.py` — baseline updated to 3356.
+
+Honest boundaries:
+- The downstream project template is a guide for consuming dry-lab artifacts.
+  It does not contain biological instructions, assay protocols, or safety
+  procedures.
+- The integration checker validates structural and policy requirements only.
+  It does not verify that a downstream project actually consumes the artifacts
+  correctly or that the candidate manifests are biologically meaningful.
+- `dry_lab_only: true` is preserved throughout — all integration checks are
+  computational safeguards, not biological proof.
+- The evidence level table is a taxonomy, not a validation ladder. L1-L3
+  outputs remain computational hypotheses regardless of integration status.
+- Safety flag conventions are advisory. Downstream projects must conduct
+  their own safety review.
+
+## v0.6.2 — Loop 102: Phase I I4 — Evidence-Certificate Changelog ✓ (2026-07-09)
+
+`docs/engineering/ARTIFACT_CHANGELOG.md` with structured changelog format
+(version, date, artifact_name, change_type, description, breaking flag).
+Unreleased section at top for pending changes. 5 entries covering recent
+Phase H and I additions (candidate_manifest, benchmark_card,
+simulation_result, simulation_module_registry, artifact_versioning_policy)
+plus the changelog itself — all as "added", non-breaking, v1.0.0.
+
+`src/openamp_foundry/versioning/artifact_changelog.py` with `CHANGE_TYPES`
+set (6 values: added, changed, deprecated, removed, fixed, security),
+`ChangelogEntry` dataclass (7 fields: version, date, artifact_name,
+change_type, description, breaking, notes), `ARTIFACT_CHANGELOG` list
+(6 entries), `get_changelog_entries()` (filters by artifact_name, version,
+change_type, breaking_only), `validate_changelog()` (5 checks: version
+MAJOR.MINOR.PATCH, date YYYY-MM-DD with dashes, artifact_name non-empty,
+change_type in CHANGE_TYPES, description non-empty), `changelog_summary()`
+(total, by_change_type, breaking_changes, artifacts_covered sorted,
+dry_lab_only).
+
+CLI (`openamp-foundry artifact-changelog`) with `--artifact`, `--version`,
+`--change-type`, `--breaking-only`, `--format text|json`.
+`make artifact-changelog` target.
+
+13 tests. **3342 total.** External tools that consume OpenAMP artifacts
+now have a machine-readable changelog to detect breaking changes and adapt
+consumers. This is Loop 102 — the 102nd PR in the NEXT_100_PR_MAP series.
+
+Changes:
+- `docs/engineering/ARTIFACT_CHANGELOG.md` (I4) — Structured changelog
+  document with versioned entries, Unreleased section, and dry-lab-only
+  disclaimer.
+- `src/openamp_foundry/versioning/artifact_changelog.py` (I4) — Core
+  module with `CHANGE_TYPES`, `ChangelogEntry` dataclass,
+  `ARTIFACT_CHANGELOG`, `get_changelog_entries()`, `validate_changelog()`,
+  `changelog_summary()`.
+- `src/openamp_foundry/versioning/__init__.py` (I4) — Exported
+  `CHANGE_TYPES`, `ChangelogEntry`, `ARTIFACT_CHANGELOG`,
+  `get_changelog_entries`, `validate_changelog`, `changelog_summary`.
+- `src/openamp_foundry/cli/main.py` (I4) — Registered `artifact-changelog`
+  subcommand with `--artifact`, `--version`, `--change-type`,
+  `--breaking-only`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I4) — Added
+  `_run_artifact_changelog()` CLI handler with JSON and text output,
+  filtering, validation display, and summary.
+- `Makefile` (I4) — Added `artifact-changelog` target with `.PHONY`.
+- `tests/versioning/test_artifact_changelog.py` (I4) — 13 tests covering:
+  at least 5 entries, all pass validation, no filter returns all, filter
+  by artifact_name, breaking_only, change_type, catches empty artifact_name,
+  invalid change_type, invalid version format, summary total, dry_lab_only,
+  breaking_changes count, artifacts_covered sorted.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.2 I4 changelog. Test count: 3342.
+- `tests/test_test_count_regression.py` — baseline updated to 3342.
+
+Honest boundaries:
+- Changelog entries describe schema and format changes only — they do not
+  measure biological activity, safety, or clinical value.
+- All current entries are "added" and non-breaking; breaking changes are
+  expected in future major versions.
+- The changelog is a computational artifact — it records version history,
+  not biological findings.
+- `dry_lab_only: true` applies to all entries — changelogs are inherently
+  dry-lab and must never be presented as validated biological findings.
+
+## v0.6.1 — Loop 101: Phase I I3 — Benchmark Card Schema ✓ (2026-07-09)
+
+`schemas/benchmark_card.schema.json` (Draft 2020-12, 15 required fields:
+benchmark_id, benchmark_name, version, date, metric, metric_value, baseline_name,
+baseline_value, delta, beats_baseline, dataset, dataset_size, scope, caveats,
+dry_lab_only). `$schema`, `$id`, `title`, `additionalProperties: false`.
+
+`src/openamp_foundry/benchmarks/` module with `BenchmarkCard` dataclass
+(15 fields), `make_benchmark_card()` (auto-computes delta, beats_baseline),
+`validate_benchmark_card()` (10 checks: non-empty benchmark_id, non-empty
+benchmark_name, non-empty metric, non-empty dataset, non-empty baseline_name,
+dataset_size >= 1, delta matches metric_value - baseline_value within 1e-9,
+beats_baseline matches delta > 0, dry_lab_only must be True),
+`benchmark_card_summary()` (total, beats_baseline_count, fails_baseline_count,
+dry_lab_only).
+
+CLI (`openamp-foundry benchmark-card`) with `--benchmark-id`, `--benchmark-name`,
+`--metric`, `--metric-value`, `--baseline-name`, `--baseline-value`, `--dataset`,
+`--dataset-size`, `--validate`, `--format text|json`.
+`make benchmark-card` target.
+
+19 tests. **3329 total.** A benchmark card is the standard format for describing
+external benchmark results — what was benchmarked, what the baseline was, what
+the result was, and what claims are supported. This is Loop 101 — the 101st PR
+in the NEXT_100_PR_MAP series.
+
+Changes:
+- `schemas/benchmark_card.schema.json` (I3) — Draft 2020-12 schema with
+  15 required fields, `$id`, `title`, `additionalProperties: false`.
+- `src/openamp_foundry/benchmarks/__init__.py` (I3) — Package init, exports
+  `BenchmarkCard`, `make_benchmark_card`, `validate_benchmark_card`,
+  `benchmark_card_summary`.
+- `src/openamp_foundry/benchmarks/benchmark_card.py` (I3) — Core module
+  with `BenchmarkCard` dataclass (15 fields), `make_benchmark_card()`,
+  `validate_benchmark_card()`, `benchmark_card_summary()`.
+- `src/openamp_foundry/cli/main.py` (I3) — Registered `benchmark-card`
+  subcommand with `--benchmark-id`, `--benchmark-name`, `--metric`,
+  `--metric-value`, `--baseline-name`, `--baseline-value`, `--dataset`,
+  `--dataset-size`, `--validate`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I3) — Added
+  `_run_benchmark_card()` CLI handler with JSON and text output,
+  card creation, optional validation, and error handling.
+- `Makefile` (I3) — Updated `benchmark-card` target with demo invocation
+  using bench-auroc-001. Added to `.PHONY`.
+- `tests/benchmarks/__init__.py` (I3) — Empty package init.
+- `tests/benchmarks/test_benchmark_card.py` (I3) — 19 tests covering:
+  make_benchmark_card returns BenchmarkCard, delta computed correctly,
+  beats_baseline True/False, dry_lab_only always True, valid card passes
+  validation, catches empty benchmark_id, empty benchmark_name, empty metric,
+  empty dataset, empty baseline_name, dataset_size < 1, wrong delta,
+  wrong beats_baseline, dry_lab_only=False, summary total, summary
+  beats_baseline_count, dry_lab_only, schema file exists.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.1 I3 changelog. Test count: 3329.
+- `tests/test_test_count_regression.py` — baseline updated to 3329.
+
+Honest boundaries:
+- Benchmark cards describe computational benchmark results only — they do not
+  measure biological activity, safety, or clinical value.
+- Delta and beats_baseline are computed from metric_value and baseline_value,
+  not independently measured.
+- The schema is versioned (currently 1.0.0) and should be updated when fields
+  are added or changed.
+- Validation checks structural correctness and internal consistency only — it
+  does not verify that the benchmark was correctly designed or that the results
+  generalize.
+- `dry_lab_only: true` is a const field — all benchmark cards are inherently
+  dry-lab and must never be presented as validated biological findings.
+
+## v0.6.0 — Loop 100: Phase I I2 — Candidate Manifest Schema ✓ (2026-07-09)
+
+`schemas/candidate_manifest.schema.json` (Draft 2020-12, 14 required fields:
+candidate_id, sequence, evidence_level, scopes, scores, uncertainty,
+source_modules, calibration_set, safety_flags, provenance_run_id, dry_lab_only,
+version, created_at, notes). `$schema`, `$id`, `title`, `description`,
+`additionalProperties: false`.
+
+`src/openamp_foundry/manifests/` module with `CandidateManifest` dataclass
+(14 fields), `make_candidate_manifest()`, `validate_candidate_manifest()`
+(8 checks: non-empty candidate_id, non-empty sequence, evidence_level 1-6,
+non-empty scopes, uncertainty 0.0-1.0, non-empty source_modules,
+dry_lab_only must be True, version MAJOR.MINOR.PATCH), `manifest_to_dict()`,
+`manifest_summary()` (total, by_evidence_level, with_safety_flags, dry_lab_only).
+
+CLI (`openamp-foundry candidate-manifest`) with `--candidate-id`, `--sequence`,
+`--evidence-level`, `--scopes`, `--scores-json`, `--uncertainty`,
+`--source-modules`, `--validate`, `--format text|json`.
+`make candidate-manifest` target.
+
+19 tests. **3310 total.** A candidate manifest is the core interoperable
+artifact — it describes a dry-lab candidate (sequence, scores, evidence level,
+scopes, safety flags, provenance) in a machine-readable format that external
+tools can consume without the full OpenAMP stack. This is Loop 100 — the
+100th PR in the NEXT_100_PR_MAP series.
+
+Changes:
+- `schemas/candidate_manifest.schema.json` (I2) — Draft 2020-12 schema with
+  14 required fields, `$id`, `title`, `description`, `additionalProperties: false`.
+- `src/openamp_foundry/manifests/__init__.py` (I2) — Package init, exports
+  `CandidateManifest`, `make_candidate_manifest`, `validate_candidate_manifest`,
+  `manifest_to_dict`, `manifest_summary`.
+- `src/openamp_foundry/manifests/candidate_manifest.py` (I2) — Core module
+  with `CandidateManifest` dataclass (14 fields), `make_candidate_manifest()`,
+  `validate_candidate_manifest()`, `manifest_to_dict()`, `manifest_summary()`.
+- `src/openamp_foundry/cli/main.py` (I2) — Registered `candidate-manifest`
+  subcommand with `--candidate-id`, `--sequence`, `--evidence-level`,
+  `--scopes`, `--scores-json`, `--uncertainty`, `--source-modules`,
+  `--validate`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (I2) — Added
+  `_run_candidate_manifest()` CLI handler with JSON and text output,
+  manifest creation, optional validation, and error handling.
+- `Makefile` (I2) — Added `candidate-manifest` target with demo invocation
+  using AMP-001. Added to `.PHONY`.
+- `tests/manifests/__init__.py` (I2) — Empty package init.
+- `tests/manifests/test_candidate_manifest.py` (I2) — 19 tests covering:
+  make_candidate_manifest returns CandidateManifest, dry_lab_only always True,
+  valid manifest passes validation, empty candidate_id fails, empty sequence
+  fails, evidence_level 0 or 7 fails, empty scopes fails, uncertainty out of
+  range fails, empty source_modules fails, dry_lab_only=False fails,
+  invalid version fails, manifest_to_dict returns all fields, manifest_summary
+  total correct, with_safety_flags correct, dry_lab_only=True, by_evidence_level
+  correct, schema file exists.
+- `docs/evidence/METRICS_CURRENT.md` — v0.6.0 I2 changelog. Test count: 3310.
+- `tests/test_test_count_regression.py` — baseline updated to 3310.
+
+Honest boundaries:
+- Candidate manifests describe dry-lab candidates only — they are computational
+  artifacts, not biological proof.
+- Scores and uncertainty are pipeline outputs, not measured biological properties.
+- The manifest schema is versioned (currently 1.0.0) and should be updated when
+  fields are added or changed.
+- Validation checks structural correctness only — it does not verify biological
+  plausibility, safety, or efficacy.
+- `dry_lab_only: true` is a const field — all manifests are inherently dry-lab
+  and must never be presented as validated wet-lab candidates.
+
+## v0.5.95 — Loop 95: Phase H H7 — Simulation-Result Confidence Interval Reporter ✓ (2026-07-09)
+
+`ScoreCI` dataclass (9 fields: module_id, score_key, point_estimate, uncertainty,
+ci_lower, ci_upper, ci_width, overlaps_with, dry_lab_only).
+`compute_score_ci()` builds CIs from SimulationResult.scores[score_key] ± uncertainty,
+returns None if score_key missing. `compare_cis()` pairwise checks overlap condition
+(a_lo <= b_hi and b_lo <= a_hi), returns new list with overlaps_with populated
+(no in-place mutation). `ci_report()` produces full report with n_results, cis list,
+any_overlap flag, and dry_lab_only=True.
+CLI (`openamp-foundry simulation-ci-report`) with `--results-json`, `--score-key`,
+`--format text|json`. `make simulation-ci-report` target with demo invocation.
+Raw scores without uncertainty ranges make it impossible to judge whether two
+candidates are distinguishable. The CI reporter makes uncertainty explicit and
+auditable.
+
+Changes:
+- `src/openamp_foundry/simulation/ci_reporter.py` (H7) — Core module with
+  `ScoreCI` dataclass (9 fields), `compute_score_ci()` with CI bounds from
+  score ± uncertainty, `compare_cis()` with pairwise overlap detection,
+  `ci_report()` with n_results, any_overlap, and dry_lab_only=True.
+- `src/openamp_foundry/simulation/__init__.py` — Exports `ScoreCI`,
+  `compute_score_ci`, `compare_cis`, `ci_report`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-ci-report`
+  subcommand with `--results-json`, `--score-key`, `--format` flags.
+  Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_simulation_ci_report()` CLI handler with JSON parsing,
+  SimulationResult deserialization, text and JSON output.
+- `Makefile` — Added `simulation-ci-report` target with demo invocation
+  using membrane_proxy + structure_proxy. Added to `.PHONY`.
+- `tests/simulation/test_ci_reporter.py` — 16 tests covering: compute_score_ci
+  returns correct bounds, ci_width = 2*uncertainty, missing key returns None,
+  dry_lab_only always True, non-overlapping CIs empty overlaps_with,
+  overlapping CIs populated overlaps_with, no in-place mutation, 0 results,
+  n_results correct, dry_lab_only=True, any_overlap false/true, overlapping
+  example, non-overlapping example.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.95 H7 changelog. Test count: 3217.
+- `tests/test_test_count_regression.py` — baseline updated to 3217.
+
+Honest boundaries:
+- Confidence intervals are computed from SimulationResult.uncertainty, which
+  is self-reported by each simulation module and not independently verified.
+- Overlap detection is a mathematical condition: two CIs overlapping means
+  the scores are not statistically distinguishable at the stated uncertainty
+  level. It does not mean the modules are biologically correct or incorrect.
+- A CI with no overlaps may still be biologically meaningless — precision
+  without accuracy is not useful.
+- The any_overlap flag is a descriptive summary, not a gate. Overlap does
+  not invalidate results; it highlights them for human review.
+- All CI reports are dry-lab only and must not be presented as biological proof.
+
+## v0.5.99 — Loop 99: Phase I I1 — Artifact Versioning Policy ✓ (2026-07-09)
+
+`docs/engineering/ARTIFACT_VERSIONING_POLICY.md` with structured versioning
+policy covering scope (schemas, evidence certificates, candidate manifests,
+provenance records, benchmark cards, model cards), version format
+(MAJOR.MINOR.PATCH), breaking/non-breaking change definitions, deprecation
+timeline (at least one minor version warning), schema `$id` policy, changelog
+requirement, and three stability tiers (Tier 1 stable, Tier 2 experimental,
+Tier 3 internal). Dry-lab-only statement included.
+
+`src/openamp_foundry/versioning/` module with `ArtifactVersionInfo` dataclass
+(7 fields), `STABILITY_TIERS` dict (3 tiers), `VERSIONED_ARTIFACTS` list
+(6 entries: candidate, lab_result, run_manifest, external_review_packet,
+safety_release_decision, simulation_result — all at v1.0.0; 5 stable,
+1 experimental). `get_artifact_version()`, `list_versioned_artifacts()` with
+tier filtering, `validate_version_format()` (regex MAJOR.MINOR.PATCH),
+`artifact_version_summary()` with total/by_tier/stable_count/experimental_count/
+dry_lab_only.
+
+CLI (`openamp-foundry artifact-version`) with `--list`, `--show <name>`,
+`--tier <stable|experimental|internal>`, `--format text|json`.
+`make artifact-version` target.
+
+19 tests. **3291 total.** Starts Phase I (interoperability and adoption)
+— external users now have stability guarantees for schemas, evidence
+certificates, and candidate manifests.
+
+Changes:
+- `docs/engineering/ARTIFACT_VERSIONING_POLICY.md` (I1) — Full versioning
+  policy document with scope, SemVer, breaking/non-breaking rules,
+  deprecation timeline, $id policy, changelog requirement, stability tiers,
+  dry-lab-only statement.
+- `src/openamp_foundry/versioning/__init__.py` (I1) — Package init,
+  exports all versioning symbols.
+- `src/openamp_foundry/versioning/artifact_version.py` (I1) — Core module
+  with `STABILITY_TIERS` dict, `ArtifactVersionInfo` dataclass,
+  `VERSIONED_ARTIFACTS` list (6 entries), `get_artifact_version()`,
+  `list_versioned_artifacts()`, `validate_version_format()`,
+  `artifact_version_summary()`.
+- `src/openamp_foundry/cli/main.py` — Registered `artifact-version`
+  subcommand with `--list`, `--show`, `--tier`, `--format` flags.
+  Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_artifact_version()` CLI handler with text and JSON output,
+  artifact lookup, tier filtering, and error handling.
+- `Makefile` — Added `artifact-version` target. Added to `.PHONY`.
+- `tests/versioning/__init__.py` — Empty package init.
+- `tests/versioning/test_artifact_version.py` — 19 tests covering:
+  at least 5 entries, all valid versions, valid stability tiers, no duplicate
+  names, get known/unknown, list all/filtered, validate valid/invalid
+  versions, summary dry_lab_only, summary total, stable/experimental counts,
+  by_tier sum.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.99 I1 changelog. Test count: 3291.
+- `tests/test_test_count_regression.py` — baseline updated to 3291.
+
+Honest boundaries:
+- Artifact versioning describes schema and format compatibility, not
+  biological validity, safety, or efficacy.
+- The version registry is manually maintained; entries must be updated when
+  schemas change.
+- `validate_version_format()` checks structural validity only — it does not
+  enforce semantic version ordering or compatibility rules.
+- Stability tiers are policy declarations, not machine-enforced guarantees.
+  A Tier 1 artifact may still have undiscovered bugs or incompatibilities.
+- All artifacts remain dry-lab hypotheses requiring wet-lab validation
+  regardless of version number.
+
+## v0.5.98 — Loop 98: Phase H H10 — Simulation-Evidence Packet Assembler ✓ (2026-07-09)
+
+`SimulationEvidencePacket` dataclass (12 fields: module_id, result,
+requested_scopes, claimed_evidence_level, baseline_beaten, deprecation_check,
+scope_check, baseline_check, adapter_gate, effective_evidence_level,
+all_checks_passed, failure_reasons, dry_lab_only).
+`assemble_evidence_packet()` runs all Phase H sub-checks (deprecation, scope,
+baseline, adapter gate) and assembles into a single auditable packet with
+all_checks_passed (True only if not deprecation_check["is_blocked"],
+scope_check["is_fully_covered"], not baseline_check["capped"], and
+adapter_gate["passed"]), failure_reasons (human-readable list of what failed),
+and effective_evidence_level (from baseline_check).
+`evidence_packet_summary()` returns compact dict with module_id,
+claimed_evidence_level, effective_evidence_level, all_checks_passed,
+failure_reasons, dry_lab_only.
+CLI (`openamp-foundry simulation-evidence-packet`) with `--module-id`,
+`--result-json`, `--requested-scopes`, `--claimed-level`, `--baseline-beaten`,
+`--format text|json`. `make simulation-evidence-packet` target.
+This is the capstone of Phase H — it assembles all the individual simulation
+discipline checks into a single auditable evidence packet showing exactly why
+a simulation result is trustworthy (or not) enough to support a given evidence
+level claim.
+
+Changes:
+- `src/openamp_foundry/simulation/evidence_packet.py` (H10) — Core module
+  with `SimulationEvidencePacket` dataclass (12+ fields),
+  `assemble_evidence_packet()` orchestrating all 4 sub-checks with failure
+  aggregation, `evidence_packet_summary()` compact dict builder.
+- `src/openamp_foundry/simulation/__init__.py` — Exports
+  `SimulationEvidencePacket`, `assemble_evidence_packet`,
+  `evidence_packet_summary`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-evidence-packet`
+  subcommand with `--module-id`, `--result-json`, `--requested-scopes`,
+  `--claimed-level`, `--baseline-beaten`, `--format` flags.
+  Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_simulation_evidence_packet()` CLI handler with JSON parsing,
+  SimulationResult deserialization, text and JSON output, module-id validation.
+- `Makefile` — Added `simulation-evidence-packet` target with demo invocation
+  using membrane_proxy + bacterial_binding + baseline_beaten=false.
+  Added to `.PHONY`.
+- `tests/simulation/test_evidence_packet.py` — 16+ tests covering: returns
+  packet dataclass, all_checks_passed=true/false for every sub-check,
+  failure_reasons empty/non-empty, effective_evidence_level capped,
+  dry_lab_only always True, summary keys and values, deprecated module,
+  adapter timeout, membrane_proxy passes with correct scope, scope fail.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.98 H10 changelog. Test count: 3271.
+- `tests/test_test_count_regression.py` — baseline updated to 3271.
+
+Honest boundaries:
+- The evidence packet aggregates computational sub-checks only. It does not
+  measure biological activity, safety, or real-world performance.
+- `all_checks_passed=True` means all computational discipline checks passed,
+  not that the simulation result is biologically meaningful.
+- The adapter gate uses failure signals provided by the caller; an adapter that
+  returns plausible-looking but biologically meaningless results will pass.
+- Baseline beating is a necessary condition for evidence, not a sufficient one.
+- Scope coverage is based on the module registry's declared scopes, which may
+  be incomplete relative to actual capabilities.
+- All evidence packets are dry-lab only and must not be presented as biological
+  proof.
+
+## v0.5.97 — Loop 97: Phase H H9 — Simulation-Scope Coverage Checker ✓ (2026-07-09)
+
+`ScopeCoverageResult` dataclass (8 fields: module_id, requested_scopes,
+module_scopes, covered, uncovered, coverage_fraction, is_fully_covered,
+dry_lab_only). `check_scope_coverage()` looks up module in registry, computes
+covered (intersection) and uncovered (requested scopes not in module scopes),
+coverage_fraction = len(covered)/len(requested_scopes) if requested else 1.0.
+`check_result_scope()` uses conservative intersection of registry scopes and
+result.scope as effective module_scopes. `scope_coverage_report()` returns
+full dict.
+CLI (`openamp-foundry simulation-scope-check`) with `--module-id`,
+`--requested-scopes`, `--format text|json`.
+`make simulation-scope-check` target with demo invocation.
+A simulation module may cover only some biological scopes. If a candidate is
+evaluated for a scope the module does not cover, that result must be flagged
+as out-of-scope rather than silently trusted.
+
+Changes:
+- `src/openamp_foundry/simulation/scope_checker.py` (H9) — Core module with
+  `ScopeCoverageResult` dataclass (8 fields), `check_scope_coverage()` with
+  registry lookup and set intersection, `check_result_scope()` with conservative
+  intersection of registry and result scopes, `scope_coverage_report()` dict
+  builder.
+- `src/openamp_foundry/simulation/__init__.py` — Exports `ScopeCoverageResult`,
+  `check_scope_coverage`, `check_result_scope`, `scope_coverage_report`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-scope-check`
+  subcommand with `--module-id`, `--requested-scopes`, `--format` flags.
+  Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_simulation_scope_check()` CLI handler with text and JSON output.
+- `Makefile` — Added `simulation-scope-check` target. Added to `.PHONY`.
+- `tests/simulation/test_scope_checker.py` — 17 tests covering: fully covered,
+  partially covered, no scopes requested, unknown module, dry_lab_only always
+  True, covered/uncovered lists correct, coverage_fraction half/full/zero,
+  check_result_scope intersection, scope_coverage_report keys and dry_lab_only,
+  membrane_proxy covers bacterial, membrane_proxy does not cover fungal, empty
+  module scopes all uncovered.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.97 H9 changelog. Test count: 3255.
+- `tests/test_test_count_regression.py` — baseline updated to 3255.
+
+Honest boundaries:
+- Scope coverage is based on the module registry's declared scopes, which may
+  be incomplete or outdated relative to a module's actual capabilities.
+- `check_result_scope` is conservative: it only trusts scopes that both the
+  registry and the result agree on. This may undercount coverage if result
+  metadata is sparse.
+- A fully covered scope does not mean the simulation is accurate or biologically
+  meaningful — only that the module claims to cover the requested scope.
+- All outputs are dry-lab only and must not be presented as biological proof.
+
+## v0.5.96 — Loop 96: Phase H H8 — Simulation-Module Deprecation Enforcer ✓ (2026-07-09)
+
+`DeprecationCheckResult` dataclass (5 fields: module_id, status, is_blocked,
+block_reason, dry_lab_only). `BLOCKED_STATUSES = {"deprecated", "unavailable"}`.
+`check_module_deprecation()` looks up module in registry: not-found returns
+is_blocked=True status="unknown"; deprecated/unavailable returns is_blocked=True
+with reason; active/experimental returns is_blocked=False.
+`enforce_deprecation()` filters list[SimulationResult] to only non-blocked
+modules, returns dict with total_input/passed/blocked/blocked_modules/
+passed_results/checks/dry_lab_only. `run_deprecation_check_batch()` bulk-checks
+module_ids with total/blocked/allowed/any_blocked/results/dry_lab_only.
+CLI (`openamp-foundry simulation-deprecation-check`) with `--module-ids`,
+`--format text|json`. `make simulation-deprecation-check` target with demo
+invocation. Deprecated simulation modules must not be used in production
+scoring — the enforcer prevents stale or unreliable modules from tainting
+evidence packets.
+
+Changes:
+- `src/openamp_foundry/simulation/deprecation_enforcer.py` (H8) — Core
+  module with `DeprecationCheckResult` dataclass, `check_module_deprecation()`,
+  `enforce_deprecation()`, `run_deprecation_check_batch()`.
+- `src/openamp_foundry/simulation/__init__.py` — Exports `BLOCKED_STATUSES`,
+  `DeprecationCheckResult`, `check_module_deprecation`, `enforce_deprecation`,
+  `run_deprecation_check_batch`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-deprecation-check`
+  subcommand with `--module-ids`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_simulation_deprecation_check()` CLI handler.
+- `Makefile` — Added `simulation-deprecation-check` target. Added to `.PHONY`.
+- `tests/simulation/test_deprecation_enforcer.py` — 21 tests covering: active
+  module not blocked, deprecated/unavailable blocked, unknown blocked with
+  status="unknown", dry_lab_only always True, enforce_deprecation filters
+  results, passed count, blocked_modules sorted/deduplicated, dry_lab_only flag,
+  all-allowed blocked=0, batch total/any_blocked/not blocked.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.96 H8 changelog. Test count: 3238.
+- `tests/test_test_count_regression.py` — baseline updated to 3238.
+
+Honest boundaries:
+- Deprecation checks are based on registry status, not biological validity.
+  A module may be "active" in the registry but still produce unreliable scores.
+- Blocking removes results from evidence packets but does not invalidate them
+  as research data — blocked results may still be useful for internal analysis.
+- The enforcer does not evaluate whether a module's underlying science is sound;
+  it enforces the pipeline's declared module lifecycle policy.
+- All outputs are dry-lab only and must not be presented as biological proof.
+
+## v0.5.94 — Loop 94: Phase H H6 — Simulation-Ensemble Agreement Checker ✓ (2026-07-09)
+
+`EnsembleAgreementResult` dataclass (9 fields: sequence, modules_checked,
+agreement_level, agreement_description, mean_score, score_range, scores_by_module,
+threshold, dry_lab_only). `AGREEMENT_LEVELS` dict (5 levels: strong/moderate/
+weak/conflict/insufficient). `check_ensemble_agreement()` extracts score_key from
+each SimulationResult's scores dict, computes score_range, classifies agreement:
+strong (≥3 modules within threshold), moderate (2 modules within threshold),
+weak (1 module), conflict (beyond threshold), or insufficient (no results).
+`run_ensemble_check_batch()` aggregates multiple calls with counts and any_conflict
+flag. CLI (`openamp-foundry simulation-ensemble-check`) with `--sequence`,
+`--results-json`, `--score-key`, `--threshold`, `--format text|json`.
+`make simulation-ensemble-check` target with demo invocation. When multiple
+simulation modules independently agree on a candidate, that agreement is stronger
+evidence than a single module alone. The ensemble checker makes this agreement
+explicit and auditable.
+
+Changes:
+- `src/openamp_foundry/simulation/ensemble_checker.py` (H6) — Core module with
+  `AGREEMENT_LEVELS` dict (5 entries), `EnsembleAgreementResult` dataclass
+  (9 fields), `check_ensemble_agreement()` with 5-path classification logic,
+  `run_ensemble_check_batch()` with per-level counts and any_conflict flag.
+- `src/openamp_foundry/simulation/__init__.py` — Exports `AGREEMENT_LEVELS`,
+  `EnsembleAgreementResult`, `check_ensemble_agreement`, `run_ensemble_check_batch`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-ensemble-check`
+  subcommand with `--sequence`, `--results-json`, `--score-key`, `--threshold`,
+  `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` — Added
+  `_run_simulation_ensemble_check()` CLI handler with JSON parsing,
+  SimulationResult deserialization, text and JSON output.
+- `Makefile` — Added `simulation-ensemble-check` target with demo invocation
+  using AKLWKR + two module results. Added to `.PHONY`.
+- `tests/simulation/test_ensemble_checker.py` — 20 tests covering: empty
+  results, 1 result weak, 2 results moderate, 3+ results strong, conflict,
+  missing score_key skipped, mean_score, score_range, dry_lab_only always True,
+  scores_by_module, threshold parameter, modules_checked, agreement_description,
+  to_dict fields, batch counts, batch any_conflict, batch dry_lab_only.
+- `docs/evidence/METRICS_CURRENT.md` — v0.5.94 H6 changelog. Test count: 3201.
+- `tests/test_test_count_regression.py` — baseline updated to 3201.
+
+Honest boundaries:
+- Agreement is a computational measure: when N modules agree within threshold,
+  it means their scores are numerically close, not that they are biologically
+  correct.
+- The threshold is a user-parameterized float; different thresholds produce
+  different agreement levels for the same data.
+- A "strong" agreement from three weak modules is still weak evidence. The
+  checker measures consistency, not quality.
+- Missing score_key entries are silently skipped — the checker does not validate
+  that the score_key is meaningful or calibrated.
+- The dry_lab_only flag is a safety constraint, not a technical guarantee.
+- Ensemble agreement does not constitute biological proof. All simulation
+  outputs remain dry-lab hypotheses requiring wet-lab validation.
+
+## v0.5.93 — Loop 93: Phase H H5 — Simulation-Result Provenance Chain ✓ (2026-07-09)
+
+`SimulationProvenanceRecord` dataclass with run_id, module_id, module_version,
+timestamp_utc, input_hash (SHA-256 of input sequence), result_hash (SHA-256 of
+sorted scores dict), calibration_set, notes, and dry_lab_only.
+`make_provenance_record()` computes hashes deterministically (sort_keys=True for
+result_hash). `validate_provenance_record()` checks non-empty fields, ISO 8601
+timestamp, 64-char hex hashes, and dry_lab_only=True. `provenance_summary()`
+aggregates total, unique modules, run_ids, and dry_lab_only flag. Every simulation
+result carries a traceable provenance chain so results can be audited, reproduced,
+or invalidated later without relying on memory.
+
+Changes:
+- `src/openamp_foundry/simulation/provenance.py` (H5) — Core module with
+  `SimulationProvenanceRecord` dataclass (9 fields), `make_provenance_record()`
+  computing SHA-256 input_hash and sorted result_hash, `validate_provenance_record()`
+  with 7 integrity checks, `provenance_summary()` with aggregation.
+- `src/openamp_foundry/simulation/__init__.py` — Exports `SimulationProvenanceRecord`,
+  `make_provenance_record`, `validate_provenance_record`, `provenance_summary`.
+- `src/openamp_foundry/cli/main.py` — Registered `simulation-provenance` subcommand
+  with `--run-id`, `--module-id`, `--module-version`, `--timestamp-utc`,
   `--input-sequence`, `--scores-json`, `--calibration-set`, `--format` flags.
   Added import and dispatch.
 - `src/openamp_foundry/cli/commands/reports.py` — Added `_run_simulation_provenance()`
