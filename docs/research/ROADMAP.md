@@ -78,6 +78,86 @@ result intake.
 ### v0.9.5 — Phase N N2: Hypothesis Outcome Record
 - Added `HypothesisOutcomeEntry` schema linking pre-registration to actual experimental outcomes
 - Records confirmed/refuted/inconclusive/partially_confirmed verdicts with observed metric value
+- Warns on threshold/verdict inconsistency and undocumented inconclusive deviations
+- dry_lab_only=False supported (real lab data can be recorded)
+- CLI: `openamp-foundry hypothesis-outcome-check`
+- 48 tests; all passing
+
+### v0.9.4 — Phase N N1: Pre-Registration Form (starts Phase N)
+- Added `PreRegistrationEntry` schema for machine-verifiable experiment pre-commitment
+- Records hypothesis, outcome metric, success threshold, and baseline comparators before results are observed
+- Prevents HARKing (Hypothesising After Results are Known)
+- Warns when random baseline is absent, hypothesis is underspecified, or statistical test is a placeholder
+- CLI: `openamp-foundry pre-registration-check`
+- 62 tests; all passing
+
+### v0.9.3 — Phase M M5: Audit Chain Completeness Checker (Completes Phase M)
+- Added `AuditChainEntry` schema validating all 9 evidence chain links exist for a batch
+- Detects gaps from sequence input through benchmark, filter, scoring, selection, certificate, claims, decision audit, and reviewer briefing
+- missing_links consistency check catches declaration errors
+- CLI: `openamp-foundry audit-chain-check`
+- 39 tests; all passing
+- Phase M (Audit Trail Infrastructure) complete
+
+### v0.9.2 — Phase M M4: Reviewer Briefing Package
+- Added `ReviewerBriefingEntry` schema for one-stop external auditor handoff packages
+- Validates CoI declaration, minimum artifact count, scope, candidate count
+- 4 warning conditions: large batch, underfocused questions, long scope, minimal artifacts
+- CLI: `openamp-foundry reviewer-briefing-check`
+- 52 tests; all passing
+
+### v0.9.1 — Phase M M3: Score Decomposition Report
+- Added `ScoreDecompositionEntry` schema documenting how composite scores decompose into components
+- 6 valid scoring methods; weight-sum tolerance; dominant/unbalanced/low-score warnings
+- CLI: `openamp-foundry score-decomposition-check`
+- 54 tests; all passing
+
+### v0.9.0 — Phase M M2: Claim-to-Evidence Mapper
+- Added `ClaimToEvidenceEntry` schema mapping each claim to supporting artifacts
+- 7 valid claim types; 4 warning conditions for exploratory or weakly-evidenced claims
+- CLI: `openamp-foundry claim-to-evidence-check`
+- 50 tests; all passing
+
+### v0.8.9
+- Phase M M1: pipeline decision audit entry schema — records each filter/threshold/rank decision with rationale and alternatives considered for external audit. PipelineDecisionAuditEntry dataclass, validate_pipeline_decision_audit(), CLI pipeline-decision-audit-check.
+
+### v0.8.8
+- Phase L L5: dataset release package checker — validates that open dataset releases meet data governance requirements (license, provenance, dual-use assessment, release approval). DatasetReleaseEntry dataclass, validate_dataset_release(), CLI dataset-release-check. Completes Phase L.
+
+### v0.8.7
+- Phase L L4: multi-candidate comparison schema — validates structured side-by-side comparisons of two or more candidates for publication-ready supplementary tables. MultiCandidateComparisonEntry dataclass, validate_multi_candidate_comparison(), CLI multi-candidate-comparison-check.
+
+### v0.8.6
+- Phase L L3: candidate summary card schema — validates publication-ready per-candidate structured summaries with sequence, evidence level, activity prediction, and safety flags. CandidateSummaryCardEntry dataclass, validate_candidate_summary_card(), CLI candidate-summary-card-check.
+
+### v0.8.5
+- Phase L L2: reproducibility manifest schema — captures exact software versions, data checksums, and random seeds for a pipeline run. ReproducibilityManifestEntry dataclass, validate_reproducibility_manifest(), CLI reproducibility-manifest-check.
+
+### v0.8.4
+- Phase L L1: preprint evidence bundle schema — ties K-phase artifacts into a submission-ready record for scientific preprints. PreprintBundleEntry dataclass, validate_preprint_bundle(), CLI preprint-bundle-check.
+
+### v0.8.3
+- Phase K K5: uncertainty quantification report schema — validates prediction intervals, confidence levels, and calibration source for dry-lab candidate recommendations. UncertaintyReportEntry dataclass, validate_uncertainty_report(), CLI uncertainty-report-check.
+
+### v0.8.2
+- Phase K K4: post-experiment calibration intake schema — captures structured comparison of pipeline dry-lab prediction against actual experimental outcome. CalibrationIntakeEntry dataclass (dry_lab_only=False enforced), validate_calibration_intake(), CLI calibration-intake-check.
+
+## v0.8.1 — Loop 121: Phase K K3 — Pilot Package Completeness Checker
+
+`docs/evidence/PILOT_PACKAGE_GUIDE.md` with purpose, required field table (11
+fields), mandatory artifact types table (3 types: selection_rationale,
+batch_priority, evidence_certificate), valid artifact types (8 types), warnings,
+validation workflow, honest-use boundary.
+
+`src/openamp_foundry/evidence/pilot_package.py` with `PilotPackageEntry`
+dataclass (11 fields, dry_lab_only=True enforced), `PilotPackageResult`
+dataclass (5 fields, dry_lab_only=True), `MINIMUM_REQUIRED_ARTIFACTS` (3),
+`READINESS_SCORE_THRESHOLD` (0.80), `MANDATORY_ARTIFACT_TYPES` (3:
+batch_priority, evidence_certificate, selection_rationale),
+`VALID_ARTIFACT_TYPES` (8 types), `validate_pilot_package()` (11 checks, 3
+warning conditions: missing artifacts, low completeness score, same
+reviewer/approver), `validate_pilot_package_dict()` (10 required fields guard).
+
 CLI: `openamp-foundry pilot-package-check`. `make pilot-package-check` target.
 **v0.8.1 milestone** — every pilot submission is machine-validated for
 completeness before external lab submission.
@@ -398,6 +478,86 @@ Honest boundaries:
 template (purpose, fill-in-the-blank format with 10 fields: Disclosure ID
 COI-YYYY-NNN, disclosure type reviewer|contributor|maintainer|external_advisor,
 subject GitHub handle, related artifact or PR, relationship type
+financial|institutional|competitive|personal|none, description (required unless
+none), date YYYY-MM-DD, recusal_required true|false, reviewer GitHub handle,
+review_status pending|acknowledged|resolved).
+
+`src/openamp_foundry/governance/coi_disclosure.py` with `COIDisclosure`
+dataclass (10 fields), `COIValidationResult` dataclass (6 fields,
+dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4: contributor, external_advisor,
+maintainer, reviewer), `VALID_RELATIONSHIP_TYPES` (5: competitive, financial,
+institutional, none, personal), `VALID_REVIEW_STATUSES` (3: acknowledged,
+pending, resolved), `validate_coi_disclosure()` (10 checks: disclosure_id
+starts with COI-, valid disclosure_type, non-empty subject/related_artifact,
+valid relationship_type, description required unless none, YYYY-MM-DD date,
+non-empty reviewer, valid review_status, dry_lab_only must be True; financial
+without recusal yields warning not error), `validate_coi_dict()` (dict input
+with 10 required fields guard).
+
+CLI (`openamp-foundry coi-check`) with `--disclosure-json` (required),
+`--format text|json`. Handler `_run_coi_check` in reports.py.
+
+`make coi-check` target. 20 tests. **3536 total.**
+
+COI disclosures now have a validated structure that builds institutional trust.
+
+Changes:
+- `docs/governance/COI_DISCLOSURE_TEMPLATE.md` (J4) — Structured COI disclosure
+  template with purpose, template (10 fields), when to disclose (financial,
+  institutional, competitive, personal), process (5 steps with escalation).
+- `src/openamp_foundry/governance/coi_disclosure.py` (J4) — Core module with
+  `COIDisclosure` (10 fields), `COIValidationResult` (6 fields,
+  dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4), `VALID_RELATIONSHIP_TYPES`
+  (5), `VALID_REVIEW_STATUSES` (3), `validate_coi_disclosure()` (10 checks),
+  `validate_coi_dict()` (dict input with 10 required fields guard).
+- `tests/governance/test_coi_disclosure.py` (J4) — 20 tests covering: valid
+  reviewer none relationship passes, valid contributor financial passes,
+  disclosure_id not starting with COI- fails, empty disclosure_id fails, invalid
+  disclosure_type fails, empty subject fails, empty related_artifact fails,
+  invalid relationship_type fails, relationship not none with empty description
+  fails, relationship none with empty description passes, invalid date format
+  fails, empty reviewer fails, invalid review_status fails, dry_lab_only=False
+  fails, financial without recusal warns, validate_coi_dict passes, validate_
+  coi_dict with missing fields fails, all results dry_lab_only=True,
+  VALID_DISCLOSURE_TYPES has 4, VALID_RELATIONSHIP_TYPES has 5.
+- `src/openamp_foundry/cli/main.py` (J4) — Registered `coi-check` subcommand
+  with `--disclosure-json`, `--format` flags. Added import and dispatch.
+- `src/openamp_foundry/cli/commands/reports.py` (J4) — Added `_run_coi_check()`
+  CLI handler with JSON parsing, validate_coi_dict call, text and JSON output,
+  exit code 3 on validation failure.
+- `Makefile` (J4) — Added `coi-check` target. Added to `.PHONY`.
+- `docs/evidence/METRICS_CURRENT.md` (J4) — v0.7.2 J4 changelog. Pipeline
+  version: v0.7.2. Test count: 3536.
+- `tests/test_test_count_regression.py` — baseline updated to 3536.
+
+Honest boundaries:
+- COI disclosure validation checks structural and policy requirements only.
+  It does not verify that the disclosed information is true, complete, or
+  accurate.
+- Financial relationship without recusal produces a warning, not an error —
+  the reviewer retains discretion to determine whether recusal is necessary.
+- The validator cannot detect undisclosed conflicts — it only checks that
+  disclosed conflicts are well-formed.
+- `dry_lab_only: true` is a const field on all dataclasses — COI disclosures
+  are governance artifacts, not legal determinations.
+- The COI template is a transparency and governance tool — it does not replace
+  the judgment of the human reviewer or governance team.
+
+## v0.7.1 — Loop 111: Phase J J3 — Release Request Template ✓ (2026-07-09)
+
+`docs/governance/RELEASE_REQUEST_TEMPLATE.md` with structured release request
+template (purpose, fill-in-the-blank format with 17 fields: Release ID,
+release type, artifact ID/version, requestor name/institution, request date,
+evidence level 1-6, dry_lab_only, safety_review_status, benchmark_summary,
+known_limitations, intended_use, data_license, human_reviewer, review_class
+A-D, approval_status; review criteria with 8 checks; process with classes A-D
+timelines and escalation path).
+
+`src/openamp_foundry/governance/release_request.py` with `ReleaseRequest`
+dataclass (17 fields), `ReleaseRequestValidationResult` dataclass (6 fields,
+dry_lab_only=True), `VALID_RELEASE_TYPES` (5: candidate, model, dataset,
+evidence_packet, schema), `VALID_SAFETY_STATUSES` (3: pending, approved,
+not_required), `VALID_INTENDED_USES` (4: research, internal, external_partner,
 public), `VALID_APPROVAL_STATUSES` (4: pending, approved, rejected, deferred),
 `VALID_REVIEW_CLASSES` (4: A, B, C, D), `validate_release_request()` (17 checks:
 release_id format, release_type valid, non-empty artifact_id/artifact_version/
@@ -1118,26 +1278,6 @@ Honest boundaries:
 - All current entries are "added" and non-breaking; breaking changes are
   expected in future major versions.
 - The changelog is a computational artifact — it records version history,
-  not biological findings.
-- `dry_lab_only: true` applies to all entries — changelogs are inherently
-  dry-lab and must never be presented as validated biological findings.
-
-## v0.6.1 — Loop 101: Phase I I3 — Benchmark Card Schema ✓ (2026-07-09)
-
-`schemas/benchmark_card.schema.json` (Draft 2020-12, 15 required fields:
-benchmark_id, benchmark_name, version, date, metric, metric_value, baseline_name,
-baseline_value, delta, beats_baseline, dataset, dataset_size, scope, caveats,
-dry_lab_only). `$schema`, `$id`, `title`, `additionalProperties: false`.
-
-`src/openamp_foundry/benchmarks/` module with `BenchmarkCard` dataclass
-(15 fields), `make_benchmark_card()` (auto-computes delta, beats_baseline),
-`validate_benchmark_card()` (10 checks: non-empty benchmark_id, non-empty
-benchmark_name, non-empty metric, non-empty dataset, non-empty baseline_name,
-dataset_size >= 1, delta matches metric_value - baseline_value within 1e-9,
-beats_baseline matches delta > 0, dry_lab_only must be True),
-`benchmark_card_summary()` (total, beats_baseline_count, fails_baseline_count,
-dry_lab_only).
-
 CLI (`openamp-foundry benchmark-card`) with `--benchmark-id`, `--benchmark-name`,
 `--metric`, `--metric-value`, `--baseline-name`, `--baseline-value`, `--dataset`,
 `--dataset-size`, `--validate`, `--format text|json`.
