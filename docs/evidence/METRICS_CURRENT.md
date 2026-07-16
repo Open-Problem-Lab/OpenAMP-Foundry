@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 44657)
-Total output lines: 1471
-
 # Current Pipeline Metrics — Single Source of Truth
 
 Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `make metrics-snapshot`.
@@ -161,6 +158,9 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 
 ### v0.10.23 — Phase G G8: SyntheticBoundaryAuditRecord schema
 - Added `SyntheticBoundaryAuditRecord` (SBR-) schema
+Warning: truncated output (original token count: 11278)
+Total output lines: 80
+
 - 14 fields: sbr_id, pipeline_version, batch_id, audit_date, evidence_source, total_candidates_checked, total_violations, violation_rate, blocked_upgrades, max_proposed_ladder_level, policy_enforced, enforcement_outcome, summary, notes
 - 16 validation rules; 3 warnings; 63 tests
 - BASELINE 6044→6107
@@ -211,21 +211,691 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > **New in v0.10.3 (Phase O O5):** CalibrationReadinessEntry schema (11 fields, 8 validation rules, 2 warnings). Added validate_calibration_readiness() and validate_calibration_readiness_dict(). Added 68 tests. CLI: openamp-foundry calibration-readiness-check. Phase O (Calibration Quality Assurance) COMPLETE.
 > **New in v0.10.2 (Phase O O4):** CrossBatchAggregatorEntry schema (12 fields, 9 validation rules, 3 warnings). Added validate_cross_batch_aggregator() and validate_cross_batch_aggregator_dict(). Added 68 tests. CLI: openamp-foundry cross-batch-aggregator-check.
 > **New in v0.10.0 (Phase O O2):** PredictionDriftEntry schema (15 fields: monitor_id, pipeline_version, reference_batch_id, evaluation_batch_id, reference_mean_score, reference_std_score, evaluation_mean_score, evaluation_std_score, mean_shift_magnitude, population_size_reference, population_size_evaluation, drift_flag, drift_notes, reviewer, dry_lab_only). 8 validation rules (DRM- prefix, batch id must differ, scores 0.0-1.0, std >= 0.0, mean shift tolerance ±0.001, population >=1, notes <=400 chars, drift_flag=True requires non-empty notes). 4 warning conditions (unreported large shift >=0.1, small population <10, variance explosion >2x). 5 constants (DRIFT_NOTES_MAX_LENGTH=400, MEAN_SHIFT_TOLERANCE=0.001, SIGNIFICANT_DRIFT_THRESHOLD=0.1, MIN_POPULATION_FOR_RELIABLE_DRIFT=10, VARIANCE_EXPLOSION_RATIO=2.0). PredictionDriftEntry (15 fields), PredictionDriftResult (8 fields: monitor_id, pipeline_version, mean_shift_magnitude, drift_flag, passed, errors, warnings, dry_lab_only). validate_prediction_drift() (12+ error checks, 4 warning conditions). validate_prediction_drift_dict() (14 required fields guard). CLI (openamp-foundry prediction-drift-check) with --entry-json, --format text|json. make prediction-drift-check target. 68 tests. Phase O O2: prediction drift monitor is the earliest warning signal for pipeline score distribution shifts before wet-lab validation data arrives.
-> **New in v0.9.9:** Calibration performance summary schema (O1 — Loop 138) — docs/evidence/CALIBRATION_PERFORMANCE_GUIDE.md with purpose, schema fields table (13 fields: summary_id, pipeline_version, evaluation_date, batch_ids_evaluated, total_candidates_evaluated, true_positive_count, false_positive_count, true_negative_count, false_negative_count, brier_score, calibration_notes, reviewer, dry_lab_only), 4 derived metrics (precision, recall, specificity, F1), 9 validation rules (CPS- prefix, >=1 batch, >=1 candidates, all counts >=0, total == TP+FP+TN+FN, Brier 0.0-1.0, notes<=400 chars, non-empty reviewer, dry_lab_only must be False), 4 warning conditions (high FP rate >0.5, low recall <0.3, poor Brier >0.25, small sample <10), honest-use boundary. CalibrationPerformanceEntry dataclass (13 fields, dry_lab_only=False), CalibrationPerformanceResult dataclass (8 fields: summary_id, pipeline_version, total_candidates_evaluated, brier_score, passed, errors, warnings, dry_lab_only=False), MAX_CALIBRATION_NOTES_LENGTH=400, MIN_CANDIDATES_FOR_RELIABLE_ESTIMATE=10, HIGH_FP_RATE_THRESHOLD=0.5, LOW_RECALL_THRESHOLD=0.3, POOR_BRIER_SCORE_THRESHOLD=0.25. validate_calibration_performance() (9+ error checks: CPS- prefix, >=1 batch, >=1 candidates, >=0 counts, confusion sum match, Brier bounds, notes<=400, non-empty reviewer, dry_lab_only must be False; 4 warnings: high FP, low recall, poor Brier, small sample). validate_calibration_performance_dict() (12 required fields guard). CLI (openamp-foundry calibration-performance-check) with --entry-json, --format text|json. make calibration-performance-check target. 68 tests. Phase O O1: calibration performance summaries now measure how well predictions match experimental outcomes. Phase O (Calibration Quality Assurance) started.
-> **New in v0.9.8:** Experiment priority justification schema (N5 — Loop 137) — docs/evidence/EXPERIMENT_PRIORITY_GUIDE.md with purpose, schema fields table (12 fields: justification_id, batch_id, pipeline_version, decision_date, selection_criteria, rejected_alternatives, rejection_rationale, resource_constraint, safety_reviewed, pre_specified, decided_by, dry_lab_only), 8 validation rules (EPJ- prefix, >=2 selection criteria, >=1 rejected alternative, non-empty rejection_rationale<=500 chars, resource_constraint<=200 chars, safety_reviewed must be True, non-empty decided_by, dry_lab_only must be True), 4 warning conditions (post-hoc, minimum criteria, no resource constraint, many criteria), honest-use boundary. ExperimentPriorityEntry dataclass (12 fields, dry_lab_only=True), ExperimentPriorityResult dataclass (8 fields: justification_id, batch_id, criteria_count, rejected_alternative_count, safety_reviewed, passed, errors, warnings, dry_lab_only=True), MINIMUM_SELECTION_CRITERIA=2, MAXIMUM_SELECTION_CRITERIA_WARNING=6, MAX_REJECTION_RATIONALE_LENGTH=500, MAX_RESOURCE_CONSTRAINT_LENGTH=200. validate_experiment_priority() (8+ error checks: EPJ- prefix, >=2 criteria, >=1 alternative, non-empty rationale<=500 chars, constraint<=200 chars, safety_reviewed must be True, non-empty decided_by, dry_lab_only must be True; 4 warnings: post-hoc, minimum criteria, no constraint, many criteria). validate_experiment_priority_dict() (11 required fields guard). CLI (openamp-foundry experiment-priority-check) with --entry-json, --format text|json. make experiment-priority-check target. 62 tests. Phase N N5: batch selection decisions are now documented with full audit trail over alternatives. Phase N (Pre-registration & Baseline Honesty) is fully complete with N1-N5.
-> **New in v0.9.7:** Negative result record schema (N4 — Loop 136) — docs/evidence/NEGATIVE_RESULT_GUIDE.md with purpose, schema fields table (14 fields: record_id, batch_id, pipeline_version, record_date, failure_category, failure_description, candidate_ids, assay_type, expected_outcome, observed_outcome, hypothesis_impact, will_be_reported, recorded_by, dry_lab_only), 6 valid failure categories (assay_quality_failure, below_activity_threshold, excessive_toxicity, model_overprediction, pipeline_error, stability_failure), 5 valid assay types (cytotoxicity_assay, hemolysis_assay, membrane_disruption_assay, mic_assay, stability_assay), 9 validation rules, 3 warning conditions (not reported, large failure set, model overprediction without recalibration), honest-use boundary. NegativeResultEntry dataclass (14 fields), NegativeResultResult dataclass (7 fields), validate_negative_result() (9+ error checks: NRR- prefix, valid failure_category, non-empty failure_description<=500 chars, >=1 candidate_ids, valid assay_type, non-empty expected_outcome/observed_outcome, non-empty hypothesis_impact<=300 chars, non-empty recorded_by; 3 warnings: not reported contributes to publication bias, >10 candidates suggests systematic issue, model_overprediction without calibration mention triggers calibration review), validate_negative_result_dict() (13 required fields guard). CLI (openamp-foundry negative-result-check) with --entry-json, --format text|json. make negative-result-check target. 68 tests. Phase N N4: failed experiments are now documented, not discarded.
-> **New in v0.9.6:** Baseline comparison manifest schema (N3 — Loop 135) — docs/evidence/BASELINE_COMPARISON_GUIDE.md with purpose, schema fields table (14 fields: manifest_id, batch_id, pipeline_version, comparison_date, metric_name, pipeline_score, baseline_scores, pipeline_beats_all_baselines, effect_size, p_value, comparison_direction, notes, reviewer, dry_lab_only), 6 valid metric names (fold_change_mic, hemolysis_fraction, hit_rate, mic_value, novelty_score, selectivity_index), 2 valid comparison directions (higher_is_better, lower_is_better), 11 validation rules, 4 warning conditions (pipeline loses, inconsistent verdict, no p-value, large unchecked effect), honest-use boundary. BaselineComparisonEntry dataclass (14 fields), BaselineComparisonResult dataclass (7 fields), validate_baseline_comparison() (11+ error checks: BCM- prefix, valid metric_name, finite pipeline_score, >=1 baseline, finite baseline_scores, finite effect_size, p_value in [0.0,1.0] or -1.0, valid comparison_direction, notes<=300, non-empty reviewer, dry_lab_only must be True; 4 warning conditions: underperforms, inconsistent verdict, no p-value, large+unchecked), validate_baseline_comparison_dict() (13 required fields guard). CLI (openamp-foundry baseline-comparison-check) with --entry-json, --format text|json. make baseline-comparison-check target. 68 tests. Phase N N3: every performance claim against a baseline is now machine-verifiable.
-> **New in v0.9.5:** Pre-registration form schema (N1 — Loop 133) — docs/evidence/PRE_REGISTRATION_GUIDE.md with purpose, schema fields table (13 fields: registration_id, batch_id, pipeline_version, registration_date, primary_hypothesis, primary_outcome_metric, success_threshold, baseline_comparators, candidate_ids, assay_type, statistical_test, registered_by, dry_lab_only), 6 valid primary outcome metrics, 5 valid assay types, 10 validation rules, 4 warning conditions, honest-use boundary. PreRegistrationEntry dataclass (13 fields), PreRegistrationResult dataclass (6 fields), validate_pre_registration() (10+ error checks: PRE- prefix, non-empty hypothesis<=500 chars, valid outcome metric, finite success_threshold, >=1 baseline_comparators, >=1 candidate_ids, valid assay_type, non-empty statistical_test<=200 chars, non-empty registered_by, dry_lab_only must be True; 4 warning conditions: no random baseline, large candidate set >20, short hypothesis <50 chars, placeholder statistical test TBD/N/A/NA/none), validate_pre_registration_dict() (12 required fields guard). CLI (openamp-foundry pre-registration-check) with --entry-json, --format text|json. make pre-registration-check target. 62 tests. Phase N (Pre-registration & Baseline Honesty) started with N1.
-> > **New in v0.9.3:** Audit chain completeness checker (M5 — Loop 132) — docs/evidence/AUDIT_CHAIN_GUIDE.md with purpose, schema fields table (16 fields: chain_id, batch_id, pipeline_version, audit_date, 9 has_* bools, missing_links, auditor, dry_lab_only), 9 required chain links, validation rules (5), warning conditions (2: single auditor, future date), honest-use boundary. src/openamp_foundry/evidence/audit_chain_completeness.py with AuditChainEntry dataclass (16 fields: chain_id, batch_id, pipeline_version, audit_date, 9 has_* bools, missing_links list[str], auditor, dry_lab_only=True), AuditChainResult dataclass (7 fields: chain_id, batch_id, missing_link_count, passed, errors, warnings, dry_lab_only=True), CHAIN_LINK_FIELDS (9 entries), CHAIN_LINK_COUNT (9), AUDITOR_EMAIL_HINT ("@"), IMPLAUSIBLE_YEAR_THRESHOLD (2030), validate_audit_chain() (5+ error checks: ACH- prefix, non-empty auditor, dry_lab_only must be True, each false chain link errors, missing_links consistency; 2 warnings: no email, future date), validate_audit_chain_dict() (15 required fields guard). CLI (openamp-foundry audit-chain-check) with --entry-json, --format text|json. make audit-chain-check target. 39 tests. Phase M M5: the evidence chain is now machine-checkable end to end. Phase M (Audit Trail Infrastructure) is fully complete with M1-M5.
-> **New in v0.9.1:** Score decomposition report schema (M3 — Loop 130) — docs/evidence/SCORE_DECOMPOSITION_GUIDE.md with purpose, schema fields table (12 fields), valid scoring methods (6), validation rules (9), warning conditions (4), honest-use boundary. src/openamp_foundry/evidence/score_decomposition_report.py with ScoreDecompositionEntry dataclass (12 fields: report_id, batch_id, candidate_id, pipeline_version, composite_score, component_scores, component_weights, scoring_method, score_range_min, score_range_max, reviewer, dry_lab_only=True), ScoreDecompositionResult dataclass (7 fields: report_id, batch_id, candidate_id, scoring_method, passed, errors, warnings, dry_lab_only=True), VALID_SCORING_METHODS (6: additive_weighted, geometric_mean, harmonic_mean, max_component, min_component, rank_aggregation), MINIMUM_COMPONENTS (2), WEIGHT_SUM_TOLERANCE (0.01), DOMINANT_WEIGHT_THRESHOLD (0.6), UNBALANCED_RATIO_THRESHOLD (5.0), MAX_COMPONENTS_WARNING (8), LOW_SCORE_FRACTION (0.2), validate_score_decomposition() (9 error checks: SDR- prefix, score_range_min<score_range_max, composite_score in range, >=2 components, weight keys match score keys, weights sum to ~1.0, valid scoring_method, non-empty reviewer, dry_lab_only must be True; 4 warning conditions: dominant component, unbalanced weights, many components, low composite score), validate_score_decomposition_dict() (11 required fields guard). CLI (openamp-foundry score-decomposition-check) with --entry-json, --format text|json. make score-decomposition-check target. Phase M M3: every composite score is now machine-decomposable into its named components for external audit.
-> **New in v0.9.0:** Claim-to-evidence mapper schema (M2 — Loop 129) — docs/evidence/CLAIM_TO_EVIDENCE_GUIDE.md with purpose, schema fields table (10 fields), valid claim types (7), validation rules (7), warning conditions (4), honest-use boundary, CLI usage. src/openamp_foundry/evidence/claim_to_evidence_mapper.py with ClaimToEvidenceEntry dataclass (10 fields: mapping_id, batch_id, pipeline_version, claim_text, claim_type, supporting_artifact_ids, evidence_level, pre_specified, reviewer, dry_lab_only=True), ClaimToEvidenceResult dataclass (7 fields: mapping_id, batch_id, claim_type, passed, errors, warnings, dry_lab_only=True), VALID_CLAIM_TYPES (7: activity_prediction, calibration_statement, novelty_claim, performance_comparison, reproducibility_claim, safety_assessment, selection_rationale), VALID_EVIDENCE_LEVELS (6: 1-6), MAX_CLAIM_TEXT_LENGTH (500), LONG_CLAIM_TEXT_THRESHOLD (300), WEAK_EVIDENCE_THRESHOLD (2), validate_claim_to_evidence() (7 error checks: CEM- prefix, non-empty claim_text<=500 chars, valid claim_type, non-empty supporting_artifact_ids, valid evidence_level 1-6, non-empty reviewer, dry_lab_only must be True; 4 warning conditions: post-hoc, weak evidence, single artifact, long claim text), validate_claim_to_evidence_dict() (9 required fields guard). CLI (openamp-foundry claim-to-evidence-check) with --entry-json, --format text|json. make claim-to-evidence-check target. Phase M M2: every scientific claim is now machine-mapped to its supporting artifacts for external audit.
-> **New in v0.8.9:** Pipeline decision audit entry schema (M1 — Loop 128) — docs/evidence/PIPELINE_DECISION_AUDIT_GUIDE.md with purpose, required field table (13 fields), valid decision types (7), warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/pipeline_decision_audit.py with PipelineDecisionAuditEntry dataclass (13 fields: audit_id, batch_id, pipeline_version, decision_date, decision_type, decision_description, rationale, alternatives_considered, affected_candidate_count, evidence_level, pre_specified, reviewer, dry_lab_only), PipelineDecisionAuditResult dataclass (5 fields: audit_id, batch_id, decision_type, passed, errors, warnings, dry_lab_only=True), VALID_DECISION_TYPES (7: benchmark_updated, calibration_adjusted, candidate_ranked, candidate_rejected, filter_applied, safety_flag_applied, threshold_chosen), VALID_EVIDENCE_LEVELS (6: 1-6), MAX_DESCRIPTION_LENGTH (500), MAX_RATIONALE_LENGTH (1000), validate_pipeline_decision_audit() (12 checks: AUD- prefix, non-empty batch_id/pipeline_version/reviewer, YYYY-MM-DD decision_date, valid decision_type, non-empty description<=500 chars, non-empty rationale<=1000 chars, affected_candidate_count>=0, valid evidence_level, dry_lab_only must be True; post-hoc warns, empty alternatives warns, low evidence warns, zero affected warns), validate_pipeline_decision_audit_dict() (12 required fields guard). CLI (openamp-foundry pipeline-decision-audit-check) with --entry-json, --format text|json. make pipeline-decision-audit-check target. Phase M M1: every pipeline decision is now machine-validated and traceable for external audit.
-> **New in v0.8.8:** Dataset release package checker (L5 — Loop 127) — docs/evidence/DATASET_RELEASE_GUIDE.md with purpose, required field table (13 fields), valid license identifiers (5), warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/dataset_release.py with DatasetReleaseEntry dataclass (13 fields: release_id, dataset_name, dataset_version, release_date, license_identifier, data_sources, contains_sequences, contains_activity_data, dual_use_assessed, usage_policy_url, contact_email, release_approved, dry_lab_only), DatasetReleaseResult dataclass (4 fields: release_id, dataset_name, passed, errors, warnings, dry_lab_only=True), VALID_LICENSE_IDENTIFIERS (5: Apache-2.0, CC-BY-4.0, CC-BY-NC-4.0, CC0-1.0, MIT), MINIMUM_DATA_SOURCES (1), validate_dataset_release() (11 checks: DSR- prefix, non-empty dataset_name/dataset_version/usage_policy_url/contact_email, YYYY-MM-DD release_date, valid license_identifier, data_sources>=1, dual_use_assessed must be True, release_approved must be True, dry_lab_only must be True; CC-BY-NC-4.0 warns, single source warns), validate_dataset_release_dict() (12 required fields guard). CLI (openamp-foundry dataset-release-check) with --entry-json, --format text|json. make dataset-release-check target. Phase L L5 completes Phase L: open dataset releases now have machine-validated data governance checks.
-> **New in v0.8.7:** Multi-candidate comparison schema (L4 — Loop 126b) — docs/evidence/MULTI_CANDIDATE_COMPARISON_GUIDE.md with purpose, required field table (11 fields), minimum requirements (2 candidates, 2 criteria), warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/multi_candidate_comparison.py with MultiCandidateComparisonEntry dataclass (11 fields: comparison_id, batch_id, pipeline_version, comparison_date, candidate_ids, comparison_criteria, top_candidate_id, top_candidate_rationale, evidence_level, reviewer, dry_lab_only), MultiCandidateComparisonResult dataclass (5 fields: comparison_id, batch_id, candidate_count, passed, errors, warnings, dry_lab_only=True), MINIMUM_CANDIDATES (2), MINIMUM_CRITERIA (2), RECOMMENDED_CRITERIA (3), MAX_RATIONALE_LENGTH (500), LARGE_CANDIDATE_SET_THRESHOLD (10), VALID_EVIDENCE_LEVELS (6: 1-6), validate_multi_candidate_comparison() (11 checks: CMP- prefix, non-empty batch_id/pipeline_version/reviewer, YYYY-MM-DD comparison_date, candidate_ids>=2, comparison_criteria>=2, top_candidate_id in candidate_ids, non-empty rationale<=500 chars, valid evidence_level, dry_lab_only must be True; evidence_level<=2 warns, candidate_count>10 warns, criteria_count<3 warns), validate_multi_candidate_comparison_dict() (10 required fields guard). CLI (openamp-foundry multi-candidate-comparison-check) with --entry-json, --format text|json. make multi-candidate-comparison-check target. Phase L L4: side-by-side candidate comparisons are now machine-validated for publication-ready supplementary tables.
-> **New in v0.8.6:** Candidate summary card schema (L3 — Loop 126) — docs/evidence/CANDIDATE_SUMMARY_CARD_GUIDE.md with purpose, required field table (12 fields), valid activity labels (5), valid amino acid set (20 standard), warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/candidate_summary_card.py with CandidateSummaryCardEntry dataclass (12 fields: card_id, candidate_id, batch_id, pipeline_version, sequence, sequence_length, evidence_level, predicted_activity, safety_flags, selection_rationale_id, reviewer, dry_lab_only), CandidateSummaryCardResult dataclass (5 fields: card_id, candidate_id, sequence_length, passed, errors, warnings, dry_lab_only=True), VALID_ACTIVITY_LABELS (5: high_activity, inactive, low_activity, moderate_activity, uncertain), VALID_AMINO_ACIDS (20 standard one-letter codes), LONG_PEPTIDE_THRESHOLD (50), VALID_EVIDENCE_LEVELS (6: 1-6), validate_candidate_summary_card() (11 checks: CRD- prefix, non-empty candidate_id/batch_id/pipeline_version/reviewer, non-empty sequence with valid amino acids, sequence_length==len(sequence), valid evidence_level, valid predicted_activity, SEL- prefix on selection_rationale_id, dry_lab_only must be True; evidence_level<=2 warns, safety_flags non-empty warns, uncertain activity warns, length>50 warns), validate_candidate_summary_card_dict() (11 required fields guard). CLI (openamp-foundry candidate-summary-card-check) with --entry-json, --format text|json. make candidate-summary-card-check target. Phase L L3: every candidate now has a machine-validated publication-ready summary card.
-> **New in v0.8.5:** Reproducibility manifest schema (L2 — Loop 125) — docs/evidence/REPRODUCIBILITY_MANIFEST_GUIDE.md with purpose, required field table (11 fields), package checksums format, data checksums format, warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/reproducibility_manifest.py with ReproducibilityManifestEntry dataclass (11 fields: manifest_id, batch_id, pipeline_version, run_date, python_version, package_checksums, data_checksums, random_seeds, hardware_summary, reviewer, dry_lab_only), ReproducibilityManifestResult dataclass (6 fields: manifest_id, batch_id, package_count, data_file_count, passed, errors, warnings, dry_lab_only=True), MINIMUM_PACKAGES (3), MINIMUM_DATA_FILES (1), RECOMMENDED_PACKAGES (5), validate_reproducibility_manifest() (10 checks: RPM- prefix, non-empty batch_id/pipeline_version/python_version/hardware_summary/reviewer, YYYY-MM-DD run_date, package_checksums>=3, data_checksums>=1, dry_lab_only must be True; empty random_seeds warns, package_count<5 warns, hardware_summary contains 'unknown' warns), validate_reproducibility_manifest_dict() (10 required fields guard). CLI (openamp-foundry reproducibility-manifest-check) with --entry-json, --format text|json. make reproducibility-manifest-check target. Phase L L2: every pipeline run now has a machine-validated reproducibility record.
-> **New in v0.8.4:** Preprint evidence bundle schema (L1 — Loop 124) — docs/evidence/PREPRINT_BUNDLE_GUIDE.md with purpose, required field table (11 fields), minimum artifact count (3), evidence level guide, warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/preprint_bundle.py with PreprintBundleEntry dataclass (11 fields: bundle_id, batch_id, pipeline_version, submission_date, title, artifact_ids, evidence_level, preprint_doi, contact_email, release_approved, dry_lab_only), PreprintBundleResult dataclass (5 fields: bundle_id, batch_id, artifact_count, passed, errors, warnings, dry_lab_only=True), MINIMUM_ARTIFACTS (3), RECOMMENDED_ARTIFACT_COUNT (5), MAX_TITLE_LENGTH (300), VALID_EVIDENCE_LEVELS (6: 1-6), validate_preprint_bundle() (10 checks: BND- prefix, non-empty batch_id/pipeline_version/contact_email, YYYY-MM-DD submission_date, non-empty title<=300 chars, artifact_ids>=3, valid evidence_level 1-6, release_approved must be True, dry_lab_only must be True; evidence_level<=2 warns, empty preprint_doi warns, artifact_count<5 warns), validate_preprint_bundle_dict() (10 required fields guard). CLI (openamp-foundry preprint-bundle-check) with --entry-json, --format text|json. make preprint-bundle-check target. Phase L L1: scientific preprints now have a machine-validated evidence bundle structure.
-> **New in v0.8.3:** Uncertainty quantification report schema (K5 — Loop 123) — docs/evidence/UNCERTAINTY_REPORT…22657 tokens truncated…n) |
+> **New in v0.9.9:** Calibration performance summary schema (O1 — Loop 138) — docs/evidence/CALIBRATION_PERFORMANCE_GUIDE.md with purpose, schema fields table (13 fields: summary_id, pipeline_version, evaluation_date, batch_ids_evaluated, total_candidates_evaluated, true_positive_count, false_positive_count, true_negative_count, false_negative_count, brier_score, calibration_notes, reviewer, dry_lab_only), 4 derived metrics (precision, recall, specificity, F1), 9 validation rules (CPS- prefix, >=1 batch, >=1 candidates, all counts >=0, total == TP+FP+TN+FN, Brier 0.0-1.0, notes<=400 chars, non-empty reviewer, dry_lab_only must be False), 4 warning conditions (high FP rate >0.5, low recall <0.3, poor Brier >0.25, small sample <10), honest-use boundary. CalibrationPerformanceEntry dataclass (13 fields, dry_lab_only=False), CalibrationPerformanceResult dataclass (8 fields: summary_id, pipeline_version, total_candidates_evaluated, brier_score, passed, errors, warnings, dry_lab_only=False), MAX_CALIBRATION_NOTES_LENGTH=400, MIN_CANDIDATES_FOR_RELIABLE_ESTIMA…5278 tokens truncated… batch_id/candidate_id/pipeline_version/calibration_source/reviewer, valid metric_name, lower_bound<=point_estimate, upper_bound>=point_estimate, confidence_level 0.0-1.0, dry_lab_only must be True; wide interval warns, confidence<0.80 warns, confidence>0.99 warns), validate_uncertainty_report_dict() (11 required fields guard). CLI (openamp-foundry uncertainty-report-check) with --entry-json, --format text|json. make uncertainty-report-check target. Phase K K5: prediction intervals for external reviewers are now machine-validated.
+> **New in v0.8.2:** Post-experiment calibration intake schema (K4 — Loop 122) — docs/evidence/CALIBRATION_INTAKE_GUIDE.md with purpose, required field table (11 fields), note on dry_lab_only=False (real lab results), valid assay types (5), valid outcome values (4), warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/calibration_intake.py with CalibrationIntakeEntry dataclass (11 fields: intake_id, batch_id, candidate_id, pipeline_version, assay_type, predicted_outcome, observed_outcome, predicted_confidence, intake_date, reviewer, dry_lab_only=False), CalibrationIntakeResult dataclass (6 fields: intake_id, candidate_id, prediction_correct, passed, errors, warnings, dry_lab_only=False), VALID_ASSAY_TYPES (5: cytotoxicity_assay, hemolysis_assay, membrane_disruption_assay, mic_assay, stability_assay), VALID_OUTCOME_VALUES (4: active, inactive, inconclusive, not_tested), validate_calibration_intake() (11 checks: CAL- prefix, non-empty batch_id/candidate_id/pipeline_version/reviewer, valid assay_type, valid predicted_outcome, valid observed_outcome, confidence 0.0-1.0, YYYY-MM-DD date, dry_lab_only must be False; high-confidence misprediction warns, inconclusive observed warns), validate_calibration_intake_dict() (10 required fields guard). CLI (openamp-foundry calibration-intake-check) with --entry-json, --format text|json. make calibration-intake-check target. Phase K K4: prediction-vs-outcome comparisons are now machine-validated with honest dry_lab_only=False enforcement.
+> **New in v0.8.1:** Pilot package completeness checker (K3 — Loop 121) — docs/evidence/PILOT_PACKAGE_GUIDE.md with purpose, required field table (11 fields), mandatory artifact types table (3 types), valid artifact types, warnings, validation workflow, honest-use boundary. src/openamp_foundry/evidence/pilot_package.py with PilotPackageEntry dataclass (11 fields: package_id, batch_id, submission_date, pipeline_version, included_artifacts, missing_artifacts, reviewer, approver, completeness_score, ready_to_submit, dry_lab_only), PilotPackageResult dataclass (5 fields, dry_lab_only=True), MINIMUM_REQUIRED_ARTIFACTS (3), READINESS_SCORE_THRESHOLD (0.80), MANDATORY_ARTIFACT_TYPES (3: batch_priority, evidence_certificate, selection_rationale), VALID_ARTIFACT_TYPES (8 types), validate_pilot_package() (11 checks: PKG- prefix, non-empty batch_id/pipeline_version/reviewer/approver, YYYY-MM-DD submission_date, included_artifacts>=3, mandatory types covered, completeness_score 0.0-1.0, ready_to_submit must be False when score<0.80, dry_lab_only must be True; missing_artifacts non-empty warns, score<0.90 warns, same reviewer/approver warns), validate_pilot_package_dict() (10 required fields guard). CLI (openamp-foundry pilot-package-check) with --entry-json, --format text|json. make pilot-package-check target. Phase K K3: every pilot submission is now machine-validated for completeness.
+>
+> **New in v0.8.0:** Batch experiment priority ranker (K2 — Loop 120) — docs/evidence/BATCH_PRIORITY_GUIDE.md with purpose, required field table (11 fields), how-to-validate instructions. src/openamp_foundry/evidence/batch_priority.py with BatchPriorityEntry dataclass (12 fields: priority_id, batch_id, candidate_id, pipeline_version, priority_rank, priority_score, evidence_level, synthesis_complexity, novelty_tier, primary_rationale, disqualifying_concerns, dry_lab_only), BatchPriorityResult dataclass (6 fields, dry_lab_only=True), VALID_SYNTHESIS_COMPLEXITIES (3: high, low, medium), VALID_NOVELTY_TIERS (3: high, low, medium), VALID_EVIDENCE_LEVELS (6: 1-6), validate_batch_priority() (11 checks: PRI- prefix, non-empty batch_id/candidate_id/pipeline_version, priority_rank>=1, priority_score 0.0-1.0, valid evidence_level, valid synthesis_complexity, valid novelty_tier, non-empty primary_rationale, dry_lab_only must be True; evidence_level<=2 warns, rank==1+high-complexity warns, priority_score<0.30 warns), validate_batch_priority_dict() (10 required fields guard). CLI (openamp-foundry batch-priority-check) with --entry-json, --format text|json. make batch-priority-check target. Phase K K2: synthesis wave ranking is now machine-validated.
+>
+> **New in v0.7.9:** Candidate selection rationale schema (K1 — Loop 119) — docs/evidence/SELECTION_RATIONALE_GUIDE.md with purpose, required field table (11 fields), evidence level table (6 levels from PROOF_LADDER.md), validation workflow. src/openamp_foundry/evidence/selection_rationale.py with SelectionRationaleEntry dataclass (11 fields: selection_id, batch_id, candidate_id, pipeline_version, selection_date, evidence_level, baseline_comparison, primary_criterion, safety_flags_checked, reviewer, dry_lab_only), SelectionRationaleResult dataclass (5 fields, dry_lab_only=True), VALID_EVIDENCE_LEVELS (6: 1-6), MINIMUM_SAFETY_FLAGS (1), validate_selection_rationale() (11 checks: SEL- prefix, non-empty batch_id/candidate_id/pipeline_version, YYYY-MM-DD date, valid evidence_level 1-6, non-empty baseline_comparison/primary_criterion, safety_flags_checked list with >=1 entry, non-empty reviewer, dry_lab_only must be True; evidence_level<=2 warns with synthesis caution), validate_selection_rationale_dict() (10 required fields guard). CLI (openamp-foundry selection-rationale-check) with --entry-json, --format text|json. make selection-rationale-check target. Phase K K1: every selection decision now has a machine-validated evidence trail.
+>
+> **New in v0.7.8:** Annual safety and benchmark review checklist (J10 — Loop 118) — docs/governance/ANNUAL_REVIEW_CHECKLIST.md with 5-section structured checklist (safety_policy: 6 checks including dual-use safeguards, dry_lab_only enforcement, toxicity filters; benchmark_thresholds: 6 checks including threshold loosening guard, easy-baseline requirement, deprecation check; calibration_status: 4 checks including recalibration gate and rollback plan; governance_decisions: 4 checks including COI disclosures and rotation plan; data_governance: 3 checks including proprietary data flag). src/openamp_foundry/governance/annual_review.py with AnnualReviewEntry dataclass (10 fields: review_id, year, section, reviewer, finding_count, action_items_count, status, notes, completion_date, dry_lab_only), AnnualReviewResult dataclass (6 fields: review_id, year, section, passed, errors, warnings, dry_lab_only=True), VALID_REVIEW_SECTIONS (5: benchmark_thresholds, calibration_status, data_governance, governance_decisions, safety_policy), VALID_ENTRY_STATUSES (5: completed, deferred, in_progress, not_applicable, pending), validate_annual_review_entry() (9 checks: ANN- prefix, 4-digit year, valid section, non-empty reviewer, non-negative finding_count, non-negative action_items_count, valid status, completed requires YYYY-MM-DD completion_date, dry_lab_only must be True; completed+no-notes warns, deferred warns, findings+no-action-items warns), validate_annual_review_dict() (7 required fields guard). CLI (openamp-foundry annual-review-check) with --entry-json, --format text|json. make annual-review-check target. Long-term trust: annual review entries are now machine-validated.
+>
+> **New in v0.7.7:** External advisory review process (J9 — Loop 117) — docs/governance/EXTERNAL_ADVISORY_REVIEW_PROCESS.md with reviewer eligibility criteria, review scope table (5 review types with minimum reviewer counts), 5-step review process (prepare packet, assign+disclose, receive+log, respond to findings, close), finding severity classification (critical/major/minor/informational), limitations. src/openamp_foundry/governance/advisory_review.py with AdvisoryReview dataclass (11 fields: review_id, review_type, artifact_id, reviewer_handle, assigned_date, deadline_date, status, finding_severity, finding_summary, resolved, dry_lab_only), AdvisoryReviewResult dataclass (5 fields: review_id, review_type, passed, errors, warnings, dry_lab_only=True), VALID_REVIEW_TYPES (5: benchmark_audit, candidate_review, evidence_review, governance_review, safety_policy_review), VALID_REVIEW_STATUSES (5: assigned, completed, deferred, in_progress, pending), VALID_FINDING_SEVERITIES (4: critical, informational, major, minor), MINIMUM_REVIEWER_COUNTS (5 entries: candidate_review and safety_policy_review require 2, others 1), validate_advisory_review() (9 checks: ADV- prefix, valid review_type, non-empty artifact_id, non-empty reviewer_handle, YYYY-MM-DD dates, valid status, valid finding_severity, dry_lab_only must be True; critical+unresolved warns, completed+no-summary warns, deferred warns), validate_advisory_review_dict() (7 required fields guard). CLI (openamp-foundry advisory-review-check) with --review-json, --format text|json. make advisory-review-check target. 29 tests. Credibility: external advisory reviews now have a validated structure and documented process.
+>
+> **New in v0.7.6:** Roadmap-to-issue sync checklist (J8 — Loop 116) — docs/governance/ROADMAP_ISSUE_SYNC_CHECKLIST.md with 5-section sync checklist (roadmap items → issues, issues → roadmap, completed items, priority alignment, version consistency). src/openamp_foundry/governance/roadmap_sync.py with RoadmapSyncEntry dataclass (10 fields: item_id, phase, description, priority, sync_status, issue_number, pr_number, completed, completion_date, dry_lab_only), RoadmapSyncResult dataclass (5 fields: item_id, phase, passed, errors, warnings, dry_lab_only=True), VALID_SYNC_STATUSES (5: synced, missing_issue, orphaned_issue, stale, completed), VALID_PRIORITY_LEVELS (4: A, B, C, D), VALID_PHASES (7: E, F, G, H, I, J, K), validate_roadmap_sync_entry() (8 checks: non-empty item_id, valid phase, non-empty description, valid priority, valid sync_status, dry_lab_only must be True, completed must have completion_date, completion_date must be YYYY-MM-DD; priority A + missing_issue warns, stale warns, orphaned_issue warns, no issue_number warns), validate_roadmap_sync_dict() (5 required fields guard). CLI (openamp-foundry roadmap-sync-check) with --entry-json, --format text|json. make roadmap-sync-check target. 24 tests. Keeps strategy actionable: roadmap sync entries are now machine-validated.
+>
+> **New in v0.7.5:** Citation and reuse guide (J7 — Loop 115) — docs/governance/CITATION_AND_REUSE_GUIDE.md with citation formats (inline, BibTeX), reuse table (4 artifact types, open/attribution_required/contact_required/restricted classes), attribution requirements, honest-use boundary. src/openamp_foundry/governance/citation_policy.py with CitationEntry (11 fields: artifact_id, citation_type, title, version, authors, year, license_identifier, reuse_class, url, bibtex_key, dry_lab_only), CitationValidationResult (6 fields, dry_lab_only=True), VALID_CITATION_TYPES (4: dataset, method, schema, software), VALID_REUSE_CLASSES (4: attribution_required, contact_required, open, restricted), VALID_LICENSE_IDENTIFIERS (5: Apache-2.0, CC-BY-4.0, CC-BY-NC-4.0, MIT, Proprietary), validate_citation_entry() (9 checks: non-empty artifact_id, valid citation_type, non-empty title, non-empty version, non-empty authors, 4-digit year, valid license_identifier, valid reuse_class, dry_lab_only must be True; restricted warns, contact_required+no-url warns, empty bibtex_key warns), validate_citation_dict() (8 required fields guard). CLI (openamp-foundry citation-check) with --citation-json, --format text|json. make citation-check target. 24 tests. Ecosystem clarity: citation entries are now machine-validated.
+>
+Warning: truncated output (original token count: 11087)
+Total output lines: 80
+
+> **New in v0.7.4:** Security policy (J6 — Loop 114) — `docs/governance/SECURITY_POLICY.md` with private vulnerability reporting process, response timeline (48h acknowledgment, 30d patch), severity classification (critical/high/medium/low), 5 vulnerability categories (code_vulnerability, secret_leakage, dependency_vulnerability, safety_guardrail_bypass, dual_use_risk), out-of-scope items, disclosure process. `src/openamp_foundry/governance/security_policy.py` with `VulnerabilityReport` dataclass (9 fields: report_id, severity, category, description, affected_version, reporter_handle, report_date, status, dry_lab_only), `SecurityReportValidationResult` dataclass (6 fields, dry_lab_only=True), `VALID_SEVERITY_LEVELS` (4: critical, high, medium, low), `VALID_VULNERABILITY_CATEGORIES` (5: code_vulnerability, secret_leakage, dependency_vulnerability, safety_guardrail_bypass, dual_use_risk), `VALID_REPORT_STATUSES` (6: received, acknowledged, under_review, patched, disclosed, not_applicable), `validate_vulnerability_report()` (9 checks: report_id SEC- prefix, valid severity, valid category, non-empty description, non-empty affected_version, non-empty reporter_handle, YYYY-MM-DD date, valid status, dry_lab_only must be True; critical+received warning, safety_guardrail_bypass warning), `validate_report_dict()` (dict input with 8 required fields guard). CLI (`openamp-foundry security-report-check`) with `--report-json`, `--format text|json`. `make security-report-check` target. 18 tests. Dry-lab only. Private vulnerability reporting now has a validated structure and documented process.
+> **New in v0.7.3:** Maintainer rotation plan (J5 — Loop 113) — `docs/governance/MAINTAINER_ROTATION_PLAN.md` with purpose, current maintainers table (3 entries covering primary, secondary, external_advisor), role definitions (4 roles: primary_maintainer, secondary_maintainer, external_advisor, contributor), bus-factor assessment (target >=2 for every critical function, CI maintenance and domain expertise currently at 1), rotation schedule (every 6 months), onboarding and offboarding checklists, linked policies. `src/openamp_foundry/governance/maintainer_rotation.py` with `MaintainerEntry` dataclass (6 fields: github_handle, role, backup_handle, responsibilities, status, dry_lab_only), `RotationPlanValidationResult` dataclass (7 fields: passed, errors, warnings, maintainer_count, critical_role_coverage, bus_factor_sufficient, dry_lab_only), `VALID_ROLES` (4: primary_maintainer, secondary_maintainer, external_advisor, contributor), `CRITICAL_ROLES` (2: primary_maintainer, secondary_maintainer), `VALID_STATUSES` (4: active, on_leave, emeritus, departing), `validate_maintainer_entry()` (6 checks), `validate_rotation_plan()` (aggregates entry validation + bus-factor coverage: missing critical role is error, single coverage is warning), `validate_rotation_plan_dict()` (dict input with missing-entries-fields guard). CLI (`openamp-foundry rotation-plan-check`) with `--plan-json`, `--format text|json`. `make rotation-plan-check` target. 21 tests. Dry-lab only. Project durability is now machine-validated.
+> **New in v0.7.2:** COI disclosure template (J4 — Loop 112) — `docs/governance/COI_DISCLOSURE_TEMPLATE.md` with structured COI disclosure template (purpose, fill-in-the-blank template with 10 fields: Disclosure ID, disclosure type (reviewer|contributor|maintainer|external_advisor), subject, related artifact, relationship type (financial|institutional|competitive|personal|none), description (conditional), date, recusal required, reviewer, review status (pending|acknowledged|resolved); when to disclose section covering financial/institutional/competitive/personal relationships; process with machine validation and escalation; linked policies). `src/openamp_foundry/governance/coi_disclosure.py` with `COIDisclosure` dataclass (10 fields), `COIValidationResult` dataclass (6 fields, dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4: contributor, external_advisor, maintainer, reviewer), `VALID_RELATIONSHIP_TYPES` (5: competitive, financial, institutional, none, personal), `VALID_REVIEW_STATUSES` (3: acknowledged, pending, resolved), `validate_coi_disclosure()` (10 checks including disclosure_id COI- prefix, valid disclosure_type, non-empty subject/related_artifact, valid relationship_type, description required unless none, YYYY-MM-DD date, non-empty reviewer, valid review_status, dry_lab_only must be True; financial without recusal warning), `validate_coi_dict()` (dict input with 10 required fields guard, missing fields returns passed=False early). CLI (`openamp-foundry coi-check`) with `--disclosure-json`, `--format text|json`. `make coi-check` target. 20 tests. Dry-lab only. COI disclosures now have a validated structure that builds institutional trust.
+> **New in v0.7.1:** Release request template (J3 — Loop 111) — `docs/governance/RELEASE_REQUEST_TEMPLATE.md` with structured release request template (purpose, fill-in-the-blank template with 17 fields: Release ID, release type, artifact ID/version, requestor name/institution, request date, evidence level 1-6, dry_lab_only, safety_review_status, benchmark_summary, known_limitations, intended_use, data_license, human_reviewer, review_class, approval_status; review criteria with 8 checks; process with classes A-D timelines and escalation path). `src/openamp_foundry/governance/release_request.py` with `ReleaseRequest` dataclass (17 fields), `ReleaseRequestValidationResult` dataclass (6 fields, dry_lab_only=True), `VALID_RELEASE_TYPES` (5), `VALID_SAFETY_STATUSES` (3), `VALID_INTENDED_USES` (4), `VALID_APPROVAL_STATUSES` (4), `VALID_REVIEW_CLASSES` (4), `validate_release_request()` (17 checks including dry_lab_only+evidence_level>4 error, public+safety_pending error, model+review_class warning), `validate_request_dict()` (dict input with missing-fields guard). CLI (`openamp-foundry release-request-check`) with `--request-json`, `--format text|json`. `make release-request-check` target. 25 tests. **3516 total.** Formal release requests now have a validated structure before entering human review.
+> **New in v0.7.0:** Governance decision log index (J2 — Loop 110, Phase J milestone) — `docs/governance/DECISION_LOG.md` with structured decision log (purpose, decision index with 8 entries GOV-001 through GOV-008 covering safety/benchmark/release/evidence/data/adapter/contribution/docs scopes, how to add entries, linked policies). `src/openamp_foundry/governance/decision_log.py` with `VALID_SCOPES` (8 entries: safety, benchmark, release, evidence, data, adapter, contribution, docs), `VALID_STATUSES` (4 entries: active, superseded, under_review, proposed), `VALID_REVIEW_CLASSES` (4 entries: A, B, C, D), `GovernanceDecision` dataclass (8 fields: decision_id, date, scope, decision, status, rationale, review_class, dry_lab_only=True), `DecisionValidationResult` dataclass (5 fields: decision_id, passed, errors, warnings, dry_lab_only=True), `GOVERNANCE_DECISIONS` list (8 entries: GOV-001 through GOV-008), `validate_governance_decision()` (9 checks: decision_id format, date format, valid scope, non-empty decision, valid status, non-empty rationale, valid review_class, dry_lab_only must be True, superseded warning), `validate_all_decisions()` (aggregates total/passed/failed/all_passed/results/dry_lab_only), `get_decisions_by_scope()` (filters by scope), `get_decisions_by_status()` (filters by status). CLI (`openamp-foundry decision-log`) with `--validate`, `--scope`, `--format text|json`. `make decision-log` target. 27 tests. **3505 total.** **Phase J milestone: v0.7.0** — governance decisions are now discoverable and machine-validated.
+> **New in v0.6.9:** Release checklist and gate validator (J1 — Loop 109, starts Phase J) — `docs/governance/RELEASE_CHECKLIST.md` with structured checklist (pre-release gates, release-type gates for 5 types, post-release checklist), cross-referencing `docs/trust/RELEASE_CHECKLIST.md`. `src/openamp_foundry/governance/release_gate.py` with `RELEASE_TYPES` (5: candidate, model, dataset, evidence_packet, schema), `UNIVERSAL_GATES` (7: ci_tests_pass, agent_check_passes, no_critical_issues, dry_lab_only_confirmed, safety_flags_reviewed, data_license_verified, no_hardcoded_secrets), `EXTRA_GATES_BY_TYPE` (per-type additional gates), `ReleaseGateResult` dataclass (8 fields, dry_lab_only=True), `validate_release_gate()` (validates all required gates, treats missing gates as failed, raises CRITICAL error on dry_lab_only_confirmed failure). CLI (`openamp-foundry release-gate-check`) with `--release-type`, `--artifact-id`, `--gates-json`, `--format text|json`. `make release-gate-check` target. 18 tests. **3478 total.** **Starts Phase J (Governance and release maturity)** — releases now require all gates to pass before external release, preventing accidental bypass of required checks.
+> **New in v0.6.8:** Adoption scorecard dashboard (I10 — Loop 108) — `src/openamp_foundry/adoption/scorecard.py` with `SCORECARD_DIMENSIONS` (5 weighted dimensions summing to 1.0: integration_check 0.25, license_compliance 0.20, adapter_validation 0.20, schema_compatibility 0.20, contribution_readiness 0.15), `ADOPTION_TIERS` (4 tiers: not_ready 0.0-0.40, emerging 0.40-0.65, established 0.65-0.85, mature 0.85-1.01), `DimensionScore` dataclass (8 fields, dry_lab_only=True), `AdoptionScorecard` dataclass (6 fields, dry_lab_only=True), `build_scorecard()` (aggregates dimension inputs into weighted total score with tier and actionable recommendations), `compute_adoption_tier()` (maps score to tier). CLI (`openamp-foundry adoption-scorecard`) with `--scores-json`, `--format text|json`. `make adoption-scorecard` target. 17 tests. **3446 total.** **Phase I (Interoperability and Adoption) is now complete** — all 10 items I1–I10 implemented (artifact versioning, candidate manifest, benchmark card, artifact changelog, integration checker, adapter validator, data license checker, schema compatibility, contribution intake, adoption scorecard).
+> **New in v0.6.7:** Public-good contribution guide (I9 — Loop 107) — `docs/community/PUBLIC_GOOD_CONTRIBUTION_GUIDE.md` with 6 contribution types (wet_lab_validation, dataset_donation, compute_sponsorship, expert_review, governance_participation, algorithm_contribution), review classes A-D, minimum requirements table, initiation process, data governance, and safety constraints. `src/openamp_foundry/community/contribution_intake.py` with `ContributionIntake` dataclass (7 fields), `IntakeValidationResult` dataclass (7 fields), `VALID_CONTRIBUTION_TYPES` (6 entries), `VALID_REVIEW_CLASSES` (4 entries), `REQUIRED_FIELDS_BY_TYPE` (6 entries), `validate_contribution_intake()` (checks all top-level fields, type-specific required fields, wet_lab_validation human_review_required=True enforcement), `validate_intake_dict()` (dict input with missing-fields guard). CLI (`openamp-foundry contribution-check`) with `--intake-json`, `--format text|json`. `make contribution-check` target. 16 tests. Dry-lab only. Funders and institutions now have a clear, validated pathway for contribution.
+> **New in v0.6.5:** Data license checker (I7 — Loop 105) — `src/openamp_foundry/licensing/license_checker.py` with `DataLicenseDeclaration` dataclass (11 fields: source_id, source_name, license_id, use_context, attribution_required, commercial_use_allowed, redistribution_allowed, modifications_allowed, human_review_required, notes, dry_lab_only), `LicenseCheckResult` dataclass (8 fields: source_id, license_id, use_context, passed, status, errors, warnings, dry_lab_only), `check_data_license()` (validates declarations against `APPROVED_LICENSES` (11 entries: CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, MIT, Apache-2.0, GPL-3.0, LGPL-2.1, BSD-2-Clause, BSD-3-Clause, ODbL-1.0, PDDL-1.0), `RESTRICTED_LICENSES` (4 entries: CC-BY-NC-4.0, CC-BY-NC-SA-4.0, custom, proprietary), `BLOCKED_LICENSES` (3 entries: unknown, unlicensed, all-rights-reserved), `VALID_…5087 tokens truncated…ate count matching, engine↔gate verdict agreement, engine L1 budget compliance, report↔gate verdict consistency, report↔engine proposal consistency, timestamp sanity, and cohort-metrics warnings. Schema (`schemas/calibration_audit.schema.json`). `make calibration-audit` and `make calibration-audit-example` targets. 18 tests. 2937 total.
+> **New in v0.5.80:** Negative-result archive completeness checker (F10) — CLI (`scripts/check_negative_archive_completeness.py`) that reads a JSON archive of negative-result entries and checks each entry against completeness criteria: all required fields present, no duplicate candidate_ids, each entry has at least one content field (assay_result, score_safety, reviewer_notes, or reason_detail), date format valid YYYY-MM-DD, and optional intake_report_id references are well-formed. Outputs a structured completeness report as JSON and Markdown with summary, per-check results, and per-entry pass/fail. Schema (`schemas/negative_result_archive_completeness.schema.json`). Example file (`examples/negative_result_archive_example.json`) with 4 toy entries. 35 tests. 2919 total.
+>
+> **New in v0.5.79:** Negative-result dashboard (F9) — CLI (`scripts/negative_result_dashboard.py`) that reads a collection of negative-result entries from a JSON file and produces a structured dashboard with summary statistics (by category, by pipeline version), score distributions (activity, safety, novelty, ensemble), per-category cross-analysis, and pipeline insights (most common failure category, recalibration opportunities). Outputs JSON + Markdown. Example file (`examples/negative_result_dashboard_example.json`) with 15 toy entries across all 6 failure categories. Schema (`schemas/negative_result_dashboard.schema.json`). `make negative-result-dashboard` target. 33 tests. 2883 total.
+>
+> **New in v0.5.79:** Bulk rejection-event validator (F8) — CLI (`scripts/validate_rejection_events.py`) that reads a JSON list of rejection events, validates each `rejection_code` against the rejection taxonomy (`examples/rejection_taxonomy_example.json`), checks required fields (candidate_id, rejection_code, date, pipeline_version), and outputs a PASS/FAIL validation report with per-event errors, rejection-code distribution, and Markdown summary. Example file (`examples/rejection_events_example.json`) with 6 toy events. `make validate-rejection-events` target. 26 tests. 2849 total.
+>
+> **New in v0.5.78:** Calibration link from negative-result entries to intake reports (F7) — closes learning loop by tracing each negative-result entry back to its prediction-vs-actual data in the calibration intake report. Schema addition: `intake_report_id` optional field on `negative_result_entry.schema.json`. CLI (`scripts/link_negative_result_to_intake.py`) reads negative-result archive JSON + calibration intake report, links by candidate_id, reports matched/unmatched entries, orphan intake candidates, lab summary for matched entries, and validates intake_report_id references. Produces structured JSON + Markdown link report. 25 tests. 2822 total.
+>
+> **New in v0.5.77:** Negative-result informativeness guide (F6) — comprehensive documentation defining 7-dimension informativeness framework for negative-result entries, with 14 examples across all 6 reason categories, before/after transformation pairs, and quick-reference checklist. CLI classifier (`scripts/classify_negative_result_informativeness.py`) that scores entries on 7 dimensions and produces informative/neutral/non-informative classification. 37 tests. 2796 total.
+>
+> **New in v0.5.76:** Safe-publication filter (F5) — CLI that reads candidate panel data with safety metadata and checks each candidate against publication safety constraints before external release. FAIL-CLOSED: defaults to reject unless all checks pass. Checks: dry_lab_only (must be true), proof_ladder_level (≤4), toxicity_screened, hemolysis_screened, dual_use_reviewed (all must be true). Produces structured JSON filter result and human-readable Markdown summary. 33 tests. 2758 total.
+>
+> **New in v0.5.75:** Failed-candidate report generator (F4) — CLI that reads candidate rejection data + taxonomy, produces structured JSON report with summary aggregation (by category, severity, stage, evidence impact) and human-readable Markdown summary. 26 tests. 2724 total.
+>
+> **New in v0.5.74:** Rejection reason taxonomy schema (F3) — machine-readable taxonomy with severity, evidence_impact, and applies_at_stage fields. Comprehensive REJECTION_TAXONOMY.md doc. 19 tests. 2698 total.
+>
+> **New in v0.5.73:** Safety-release decision schema (E4), pilot pre-registration schema (E5), review packet generator CLI (E6). 40 tests. 2679 total.
+>
+> **New in v0.5.72:** External review packet schema (E1), example packet (E2), reviewer questionnaire schema (E3). 27 tests. 2666 total.
+>
+> **New in v0.5.71:** Calibration benchmark added — Brier score, reliability diagram, and calibration slope for pipeline ensemble scores. Honest finding: Brier=0.318 (>0.25=uninformative), slope=0.43 (ideal=1.0). Pipeline ranks well but scores are not meaningful probabilities. `make bench-calibration`. 6 tests. ~2100 total.
+>
+> **New in v0.5.65:** `scripts/lab/build_lab_batch_pack.py` now writes `chain_of_custody.json` and `MANIFEST.json` into lab batch packs. The custody file includes SHA-256 hashes for `panel.csv`, the ordered candidate list, each candidate sequence, and each evidence certificate. `--verify-pack` verifies archive integrity and detects tampering. These hashes prove identity/integrity only, not biological activity, safety, or synthesis success. 5 tests.
+> **New in v0.5.64:** `schemas/decision_log.schema.json` — 12-field JSON Schema for human review decisions. Covers 9 decision types from AGENTS.md §8. Dissent conditional. 11 tests. 2000 total.
+> **New in v0.5.63:** `scripts/lab/build_lab_batch_pack.py` — generates single zip with candidate CSV, 36 evidence certs, protocol refs, controls manifest, data return template. `make lab-batch-pack`. 10 tests. 1989 total.
+> **New in v0.5.62:** Pre-registered pass/fail criteria + simulation uncertainty in evidence. `configs/wave1_pass_fail.yaml` + `scripts/lab/check_wave1_pass_fail.py`. `rank info` now propagates simulation uncertainty into evidence certs. 17 tests.
+> **New in v0.5.61:** `docs/review/LAB_PARTNER_ONBOARDING.md` — CRO onboarding pack with panel summary, synthesis instructions, assay protocols, data return format, controls, safety, timeline. No code changes.
+> **New in v0.5.60:** `docs/evidence/SIMULATION_BENCHMARK.md` consolidates simulation ablation, cheap-baseline comparison, and weighted-mode gate results. Current conclusion: simulation does not improve ranking; `weighted` remains blocked.
+> **New in v0.5.59:** `ExternalSimulationAdapter` protocol — wraps third-party callables into `VirtualAssayProxy`. Availability check, graceful error handling, metadata override. ARCHITECTURE.md docs updated. 12 tests. 1965 total.
+> **New in v0.5.58:** Per-signal cheap-baseline comparison: 0/4 simulation signals beat their cheapest heuristic. All simulation modules remain permanently experimental. `make bench-simulation-baselines`. 13 tests. 1953 total.
+> **New in v0.5.57:** `rank --simulation-mode info` runs MembraneProxy + StructureProxy on every candidate, adds `sim_*` scores to JSONL output and Markdown report. 6 new CLI tests. 1940 total.
+> **New in v0.5.56:** `openamp-foundry bench simulation-gate` converts both
+> simulation ablation artifacts into a fail-closed permission decision for
+> `weighted` mode. Current verdict: blocked. AMP-vs-decoy delta remains
+> negative and within-AMP delta remains negative, so simulation stays
+> informational only. 6 tests. Current suite: 1927 passed, 7 skipped.
+> **New in v0.5.55:** Within-AMP simulation ablation — `--mode within-amp` tests MembraneProxy + StructureProxy on hemolysis detection (45 hemolytic vs 125 selective). Honest finding: best simulation `helix_weight` AUROC 0.6458; `rich_selectivity` still best at 0.7453. 23 tests. 1928 total.
+> **New in v0.5.54:** Simulation ablation benchmark — tests MembraneProxy + StructureProxy on 500-AMP AMP-vs-decoy benchmark. Honest finding: composite degrades (delta=−0.1153) but `bacterial_binding` alone achieves AUROC 0.7512 — genuine non-charge signal. 17 new tests. 1922 total.
+> **New in v0.5.53:** Structure ensemble proxy — `StructureProxy` using Chou-Fasman 3-state helix/sheet/coil propensities. `non_helical` flag for helic-biased scorer warnings. `HelicityBaseline`. 34 new tests. 1905 total.
+> **New in v0.5.52:** Membrane interaction proxy — `MembraneProxy` using Wimley-White interfacial/octanol scales for coarse-grained bacterial and mammalian binding energy scores. `BomanBaseline` clamped. 30 new tests. 1873 total.
+> **New in v0.5.51:** Virtual assay scope document — `docs/evidence/VIRTUAL_ASSAY_SCOPE.md` with uncertainty policy, ablation requirements, integration modes. Doc drift fixes: BENCHMARKING.md, METRICS_CURRENT.md test count, NOVELTY_AUDIT_GUIDE.md script ref. No code changes.
+> **New in v0.5.50:** Negative-result archive template — `docs/evidence/NEGATIVE_RESULT_ARCHIVE.md` with full 18-field entry schema, automation notes, and limitations. Phase 2 exit criteria: all 5 met ✅. No code changes.
+> **New in v0.5.49:** Policy version bump workflow — `scripts/calibration/bump_recalibration_policy.py` (standalone CLI, decision-log guard, dry-run mode, auto-increment + write). CI guard in `ci.yml` validates policy version against base branch when `configs/recalibration_policy.yaml` changes. `make bump-policy-version` Makefile target. 9 tests. 1843 total passing. Phase 2 exit: 5 of 5 criteria met.
+> **New in v0.5.48:** Fixed stale ARCHITECTURE.md package map — calibration and active_learning were listed as "Potential future packages" despite shipping in v0.5.19+ and v0.5.45+. Moved to main package map with version annotations. Updated 50_LOOP_PLAN.md "Current Position" and completed Phase 2 table. No code changes.
+> **New in v0.5.47:** Full calibration loop end-to-end pytest test added — `TestFullCalibrationLoop.test_full_calibration_loop_via_cli` exercises all 5 pipeline steps via CLI subprocess calls in temp directory isolation. Validates every output artifact. Oldest "golden path" regression test. 1834 total passing.
+> **New in v0.5.46:** Active-learning recovery benchmark added — `run_active_learning_benchmark()` simulates multi-round recovery of hidden active candidates via `select_batch_2` vs 20-trial random baseline. Pre-registered thresholds: PREREGISTERED_MAX_ROUNDS_TO_FIRST_RECOVERY=3, PREREGISTERED_MIN_RECALL=0.33. `openamp-foundry bench active-learning` CLI. 8 tests. 1832 total passing.
+> **New in v0.5.45:** Active-learning batch-2 selector added — `select_batch_2()` uses uncertainty (model disagreement + ensemble proximity to 0.5), diversity (sequence similarity vs batch-1), and safety/selectivity gates with min-uncertainty-probe guarantee. `openamp-foundry select-batch` CLI. 11 tests.
+> **New in v0.5.44:** Recalibration report with JSON Schema validation added — `schemas/recalibration_report.schema.json` (Draft 2020-12), `build_recalibration_report()` combines gate verdict + weight proposal, `validate_recalibration_report()`, CLI `--out-json` and `--out-md`. 9 tests.
+> **New in v0.5.43:** Dry-run mode for recalibration engine — `--dry-run` flag on `recalibration-engine` CLI prints diff table with current vs proposed weights, L1 summary. Skips all file writes. `make recalibration-engine-dry-run`.
+> **New in v0.5.42:** Synthetic lab-result generator added — `examples/lab_results_generator.py` produces schema-valid JSON for 7 assay types (MIC, MBC, hemolysis_RBC, cytotoxicity_mammalian, membrane_disruption, time_kill, biofilm_inhibition). Configurable cohort-size, effect-size, noise-level, seed. All files explicitly SYNTHETIC-labeled. 40/40 schema-valid. Integrates with `calibration-intake`.
+> **New in v0.5.41:** Added exact charge-balanced synthetic controls. These
+> preserve each AMP's length and K/R/D/E/H counts, then resample neutral
+> positions from a fixed neutral residue background. This is not a biological
+> negative set, but it is a hard control for the trivial cationic prior. Result:
+> charge-density AUROC falls to `0.5000`, while pipeline AUROC falls to `0.5103`
+> (`pipeline_minus_charge_density=+0.0103`). The current broad AMP-vs-decoy
+> signal is therefore not proven to survive exact charge control.
+> **New in v0.5.38:** `pilot-panel` now supports an optional `--min-per-structural-class` floor using the same six classes as the v0.5.37 benchmark. This is a panel-construction bias control, not evidence that the under-ranked classes are stronger candidates.
+> **New in v0.5.39:** Added charge-matched decoy benchmark to test whether the ensemble retains signal after controlling the trivial charge-density gap between positives and decoys. Current decoy pool does **not** support exact charge matching (`mean_abs_charge_density_delta=0.1296`), and charge density still beats the ensemble (`0.8166` vs `0.7792`). Treat raw AMP-vs-decoy AUROC as charge-inflated until a better charge-balanced negative set exists. See `outputs/benchmark_charge_matched.json`.
+> **New in v0.5.35:** Cross-dataset generalization benchmark: DRAMP AMPs (database-independent test) achieve AUROC 0.7803 vs baseline 0.7832 (Δ=-0.0029). Pipeline generalises strongly — heuristic features are source-independent, not memorizing APD6/UniProt biases. Phase 1 exit criterion #5 (cross-dataset results) satisfied. See `outputs/cross_dataset_benchmark.json`.
+> **New in v0.5.37:** Per-family benchmark breakdown: stratifies 500 AMPs by structural class. Pipeline is charge-dominated — highly_cationic AUROC 0.9583 vs proline_rich AUROC 0.5861 (Δ=0.37). Classes with weak discrimination flagged as blind spots. See `outputs/benchmark_per_family.json`.
+> **New in v0.5.33:** Expert ablation re-run on expanded 500-AMP benchmark (n=1000). Two components reclassified: synthesis was an anti-signal artifact on n=191 (now near-zero 0.4968); boman_activity more strongly anti-AMP (0.3291). selectivity_proxy weaker on diverse set (0.6702 vs 0.7729). Activity remains dominant signal (0.7969). Expert composite delta widens to −0.0935 — expected tradeoff for selectivity-aware scoring.
+> **New in v0.5.32:** Precision@k calibration added — top-20 precision 1.000 (all AMPs), top-50 precision 0.900, top-100 precision 0.870, top-200 precision 0.835. Best F1 threshold 0.6323 (F1=0.7518, precision=0.6337, recall=0.9240). At 80% recall, precision drops to base-rate (0.5000) — honest limitation: high-recall triage is not the pipeline's strength.
+> **New in v0.5.31:** Added dipeptide-order features for sequence-order awareness. `dipeptide_order_score` achieves AUROC 0.7861 on AMP-vs-scrambled discrimination — the strongest order-dependent feature in the pipeline. Only 7/31 features survive scrambling (amphipathicity/helix-wheel + dipeptide). All composition features are purely position-independent (exactly 0.5000 AUROC on scrambled test).
+> **New in v0.5.30:** Easy baseline benchmark added — charge density alone (AUROC 0.8166) outperforms the full pipeline ensemble (0.7792) on AMP-vs-Swiss-Prot-decoy discrimination. Honest finding documented: expected because pipeline optimizes for safety, not raw discrimination.
+> **New in v0.5.29:** Expanded benchmark to 500 AMPs + 500 composition-matched decoys (n=1000). AUROC 0.7792 (CI₉₅: 0.7505–0.8065) confirms signal generalizes. Cluster-aware CI: 0.746–0.8102. Representative AUROC: 0.778. Standard benchmark (n=191) retained for backward comparison.
+> **Pipeline version:** v0.10.6 (P5 — calibration cycle summary — Phase P complete)
+> **Branch:** main
+
+---
+
+## Benchmark Metrics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Benchmark type | Standard (composition-matched decoys) | Default `make validate-scoring` |
+| Positives | **95** public-domain AMPs | 12 taxonomic classes; see `examples/validation/known_amps.csv` |
+| Negatives | **96** length-matched random decoys | Swiss-Prot residue frequencies, seed=1729 |
+| Total (n) | **191** | Expanded from original 87 (PR #110) |
+| **Pipeline AUROC** | **0.7832** | Bootstrap CI₉₅: 0.72–0.84 (n_bootstrap=2000) |
+| **Phase3 AUROC** | **0.7448** | Synthesis gate config; CI₉₅: 0.68–0.81 |
+| **Pipeline AUPRC** | **0.8164** | Random baseline: 0.4974 |
+| **Phase3 AUPRC** | **0.7933** | Random baseline: 0.4974 |
+| Strict AUROC (scrambled) | 0.4335 | 95 shuffled decoys; below random — expected for helic-centric scorer |
+| Recall@10 | 0.1053 | 10/95 positives in top 10 |
+| Recall@20 | 0.2105 | 20/95 positives in top 20 |
+| Recall@43 | 0.4211 | 40/95 positives in top 43 |
+| Interpretation | **STRONG** | AUROC > 0.70 gate passed |
+
+
+### Expanded 500-AMP Benchmark (n=1000)
+
+> Added 2026-07-05. The original benchmark (95 AMPs + 96 decoys, n=191) was
+> expanded to 500 AMPs + 500 length-matched decoys (n=1000) using UniProt
+> reviewed AMPs (CC BY 4.0) and APD6 natural sequences (academic use).
+> This provides a more honest estimate of pipeline discriminative power
+> with tighter confidence intervals.
+>
+> Curated by: `scripts/benchmarks/curate_500_amp_benchmark.py`
+>
+> Run: `make bench-500`
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Positives | **500** public-domain AMPs | UniProt reviewed + APD6 natural + existing curated |
+| Negatives | **500** length-matched random decoys | Swiss-Prot residue frequencies, seed=20260705 |
+| Total (n) | **1000** | ~2.3× reduction in CI width over the original 87-seq benchmark |
+| **Pipeline AUROC** | **0.7792** | Bootstrap CI₉₅: 0.7505–0.8065 |
+| **Phase3 AUROC** | **0.7744** | Synthesis gate config |
+| **Pipeline AUPRC** | **0.7705** | Random baseline: 0.5000 |
+| **Phase3 AUPRC** | **0.7656** | Random baseline: 0.5000 |
+| Recall@10 | 0.020 | 10/500 positives in top 10 |
+| Recall@20 | 0.040 | 20/500 positives in top 20 |
+| Recall@43 | 0.076 | 38/500 positives in top 43 |
+| Interpretation | **STRONG** | AUROC > 0.70 gate passed |
+
+### Cross-Dataset Generalization: DRAMP (v0.5.35, added 2026-07-05)
+
+Tests whether pipeline heuristic features discriminate AMPs from a different
+database — DRAMP (Data Repository of Antimicrobial Peptides) — against the same
+Swiss-Prot frequency decoys. DRAMP-only sequences (n=500, not in current
+benchmark set) vs length-matched decoys.
+
+| Metric | DRAMP-only | Current baseline (APD6/UniProt) | Δ |
+|--------|:----------:|:-------------------------------:|:-:|
+| AUROC | **0.7803** | **0.7832** | **−0.0029** |
+| CI₉₅ | 0.7517–0.8081 | 0.7505–0.8065 | — |
+| AUPRC | 0.8071 | 0.8164 | — |
+| Mean AMP score | 0.8178 | — | — |
+| Mean decoy score | 0.7197 | — | — |
+
+**Key finding:**
+- Pipeline generalises strongly — AUROC is essentially identical (Δ=−0.0029).
+- Heuristic features (charge, hydrophobicity, hydrophobic moment, etc.) are
+  **source-independent**: they capture fundamental AMP physicochemical properties
+  rather than database-specific biases.
+- 65% of current AMP set (325/500) overlap with DRAMP — expected because DRAMP
+  is a meta-database that includes APD6. DRAMP-only test uses the remaining
+  6427 sequences with zero overlap.
+
+**Phase 1 exit criterion #5 satisfied:** cross-dataset results published.
+
+### Expanded Cluster-Split Benchmark (near-duplicate de-inflation)
+
+| Metric | Pipeline (pipeline.yaml) | Phase3 (phase3.yaml) |
+|--------|:-----------------------:|:-------------------:|
+| Full AUROC | 0.7792 | 0.7744 |
+| **Cluster-aware CI₉₅** | **0.746–0.8102** | **same config** |
+| Representative AUROC (1/cluster) | 0.778 | 0.7744 |
+| Representative CI₉₅ | 0.7455–0.8084 | — |
+| Held-out AUROC (195 near-dup AMPs) | 0.7828 | — |
+| Independent clusters | 374 / 500 | 374 / 500 |
+| AMPs in multi-member clusters | 195 / 500 | 195 / 500 |
+| Multi-member clusters | 69 | 69 |
+
+**Key findings:**
+
+1. **Signal generalizes to 10× larger set.** AUROC 0.7792 on n=1000 is essentially
+   identical to 0.7832 on n=191. The pipeline does not overfit to the 95-sequence
+   benchmark.
+
+2. **CIs are much tighter.** Cluster-aware CI: 0.746–0.8102 (width 0.064) vs
+   0.7061–0.8526 (width 0.146) on n=191. The expanded set provides ~2.3× tighter
+   confidence intervals.
+
+3. **Representative AUROC nearly equals full AUROC.** 0.778 vs 0.7792. On the
+   original benchmark, representative AUROC (0.7607) was lower than full (0.7832).
+   The expanded set's 500 sequences are less dominated by near-duplicate inflation.
+
+4. **Cluster-aware CI lower bound (0.746) is well above the 0.65 gate.** The
+   pipeline's signal is robust to near-duplicate de-inflation.
+
+5. **Honest limitation:** The expanded set uses UniProt-reviewed and APD6 sequences
+   annotated as antimicrobial. These carry the same annotation bias as the original
+   set: AMP annotation is an active research field, and some annotated AMPs may not
+   be genuinely antimicrobial. The set also includes fewer defensins and
+   cysteine-rich peptides due to the 10–30 AA length constraint.
+
+### Easy Baseline Benchmark (trivial feature comparison)
+
+> Added 2026-07-05 (v0.5.30). Compares the full pipeline ensemble against
+> single-feature trivial predictors (length, charge, charge density) on the
+> expanded 500-AMP benchmark. If the pipeline does not significantly outperform
+> trivial features, its value must come from multi-objective optimization,
+> not better basic discrimination.
+>
+> Run: `make bench-easy-baseline`
+
+| Predictor | AUROC | Notes |
+|-----------|-------|-------|
+| Length alone | 0.5000 | Decoys are length-matched — no signal |
+| Net charge (pH 7.4) | 0.8125 | AMPs are cationic — known strong predictor |
+| **Charge density** | **0.8166** | **Best trivial feature** |
+| Length + charge (Z-scored) | 0.5024 | Length adds nothing (matched decoys) |
+| **Pipeline ensemble** | **0.7792** | **Below best trivial (Δ=−0.0374)** |
+
+**Honest finding:** The pipeline ensemble does NOT outperform charge density
+alone on AMP-vs-Swiss-Prot-decoy discrimination. This is expected because:
+
+1. **AMPs are cationic by nature.** Net positive charge is the single strongest
+   predictor of antimicrobial function. This is a well-known result in the
+   AMP prediction literature (Lata et al. 2007, Waghu et al. 2016).
+
+2. **The pipeline optimizes for 4 objectives.** The ensemble combines activity
+   (0.40), safety (0.25), synthesis (0.15), and novelty (0.20). The safety
+   scorer explicitly penalizes high-charge peptides (hemolytic risk). This
+   reduces raw AMP/non-AMP discrimination — intentionally.
+
+3. **Charge density alone has no safety penalty.** A pure charge-density
+   predictor ranks all high-charge sequences highly — including hemolytic ones.
+   The pipeline trades some raw discrimination for safety awareness.
+
+**Implication:** The current AMP-vs-Swiss-Prot-decoy benchmark primarily tests
+charge-based discrimination, which is not where the pipeline's value lies.
+A benchmark that tests the pipeline's actual objective (finding SAFE, novel,
+synthesizable AMPs) would more honestly assess the ensemble's contributions.
+
+**Recommendation for benchmarks that test the pipeline's actual value:**
+- Use charge-matched decoys (now implemented in `make bench-charge-matched`)
+- Test safe-AMP detection (active AND non-hemolytic vs hemolytic AMPs)
+- Test multi-objective ranking (does the ensemble rank safe, novel, synthesizable AMPs above toxic or trivially known ones?)
+
+### Charge-Matched Decoy Benchmark
+
+> Added 2026-07-06 (v0.5.38). This benchmark greedily matches each AMP to an
+> unused decoy with nearest charge density, then compares the ensemble against
+> charge density on that adversarial set.
+>
+> Run: `make bench-charge-matched`
+
+Purpose: test the exact failure mode exposed by the easy baseline benchmark.
+If the ensemble only works because AMPs are more cationic than generic decoys,
+it should lose most of its signal once that gap is removed.
+
+Primary output:
+- `outputs/benchmark_charge_matched.json`
+
+Observed result:
+- `mean_abs_charge_density_delta = 0.1296`
+- `charge_density_auroc = 0.8166`
+- `pipeline_auroc = 0.7792`
+- `pipeline_minus_charge_density = -0.0374`
+
+Interpretation:
+- The easy-baseline concern survives: charge density remains a stronger raw
+  discriminator than the ensemble on the current matched set.
+- The corrected implementation fixed an earlier false-zero bug (`charge_ph74`
+  was not a feature key). The benchmark now uses direct pH-7.4 side-chain charge.
+- Confirmed fact: the current decoy pool is insufficient for exact
+  charge-density matching across all 500 positives.
+- Remaining uncertainty: the ensemble may still retain non-charge signal, but
+  this benchmark does not prove it. A stronger charge-balanced decoy generator
+  is now the next honest test.
+
+This benchmark is informational, not a regression gate. Its job is honesty:
+separate genuine ensemble discrimination from the trivial cationic prior.
+
+### Charge-Balanced Synthetic Control Benchmark
+
+> Added 2026-07-06 (v0.5.41). This benchmark creates one deterministic
+> synthetic negative control per AMP. Each synthetic control preserves the AMP's
+> length and exact K/R/D/E/H counts, then resamples all neutral positions from a
+> fixed neutral residue background.
+>
+> Run: `make bench-charge-matched`
+
+Purpose: force charge density to be non-discriminative and ask whether the
+current pipeline still separates AMPs from a charge-equivalent synthetic
+background.
+
+Primary output:
+- `outputs/benchmark_charge_balanced_synthetic.json`
+
+Observed result:
+- `mean_abs_charge_density_delta = 0.0000`
+- `max_abs_charge_density_delta = 0.0000`
+- `charge_density_auroc = 0.5000`
+- `pipeline_auroc = 0.5103`
+- `pipeline_minus_charge_density = +0.0103`
+
+Interpretation:
+- This is a negative result for broad AMP-vs-decoy discrimination after exact
+  charge control. The pipeline is only barely above chance on this synthetic
+  control.
+- The control is intentionally synthetic and should not be mistaken for a real
+  inactive-peptide distribution.
+- The result strengthens the current benchmark warning: the pipeline's value
+  must be judged on safety-aware, novelty-aware, and wet-lab-calibrated
+  selection, not raw AMP-vs-generic-decoy AUROC.
+
+Next benchmark bottleneck:
+- Build a biologically plausible charge-balanced negative set or a benchmark
+  framed around the actual objective: active, low-hemolysis, novel, synthesizable
+  candidates versus toxic, copied, unstable, or inactive controls.
+
+### Order-Dependent Features Benchmark (which features survive scrambling?)
+
+> Added 2026-07-05 (v0.5.31). The pipeline's strict triage benchmark (AMP vs
+> scrambled sequence, preserving composition) tests whether the pipeline is
+> aware of sequence order. This benchmark analyzes which of the 31 scalar
+> features survive scrambling, and introduces the new `dipeptide_order_score`
+> feature.
+>
+> Run: `make bench-order-dependent`
+
+**Key finding:** Only 7/31 features are order-dependent (AUROC > 0.55 on
+AMP-vs-scrambled). All composition-based features (charge, hydrophobicity,
+aromatic fraction, boman index, gravy, etc.) are EXACTLY position-independent
+(AUROC = 0.5000 on scrambled test — real and scrambled sequences have
+identical means).
+
+| Feature | AUROC | Mean (real) | Mean (scrambled) | Order-dependent? |
+|---------|-------|-------------|-------------------|:----------------:|
+| **dipeptide_order_score** | **0.7861** | 0.5644 | 0.4603 | ✅ **#1** |
+| hydrophobic_moment | 0.7483 | 0.3198 | 0.1949 | ✅ |
+| helix_wheel_face_contrast | 0.7398 | 0.8469 | 0.4922 | ✅ |
+| helix_wheel_amphipathic_score | 0.7396 | 0.4239 | 0.2485 | ✅ |
+| max_hydrophobic_moment | 0.7146 | 0.5189 | 0.3991 | ✅ |
+| helix_wheel_hydrophobic_face_mean_h | 0.6372 | 0.5798 | 0.4113 | ✅ |
+| helix_wheel_ph_face_cationic_fraction | 0.5595 | 0.2732 | 0.2402 | ✅ |
+| *All composition features (charge, hydrophob., etc.)* | *0.5000* | *identical* | *identical* | ❌ |
+
+**Analysis:**
+
+1. **dipeptide_order_score is the strongest order-dependent feature** (0.7861).
+   It captures local dipeptide patterns that are characteristic of AMPs and
+   destroyed by scrambling. The score uses a pre-computed reference of log-odds
+   from the 500-AMP benchmark (real vs scrambled).
+
+2. **Hydrophobic moment and helix wheel features** are the only other
+   order-dependent signals. They depend on which residues are on the hydrophobic
+   vs hydrophilic face of an idealised helix — a position-dependent property.
+
+3. **All composition features are EXACTLY 0.5000.** This is a mathematical
+   necessity: composition is invariant under permutation. Scrambling changes
+   the position of residues but not their counts.
+
+4. **Some features are anti-order-dependent** (AUROC < 0.5): aggregation
+   propensity (0.4325), helix_wheel_hydrophilic_face_mean_h (0.3506).
+   Scrambled sequences score higher on these — the scrambling process
+   creates patterns that are more aggregation-prone than the native AMP.
+
+**Recommendation:** The dipeptide_order_score should be considered for
+integration into the ensemble scoring when the benchmark is next re-baselined.
+It provides orthogonal order-dependent signal that the existing composition-based
+features cannot capture.
+
+### Precision@k Calibration (operating characteristic for candidate selection)
+
+> Added 2026-07-05 (v0.5.32). Translates the pipeline's AUROC into actionable
+> operational guidance: at a given k, what precision/recall can we expect? At a
+> given recall, what threshold should we use? This addresses the gap between
+> "AUROC > 0.70" (binary discrimination) and "how many candidates do I need to
+> pick to find X AMPs?" (operational triage).
+>
+> Dataset: 500 AMPs + 500 decoys (balanced, base rate = 50%)
+>
+> Run: `make bench-precision-at-k`
+
+**Small-k triage (top-k analysis):**
+
+| k | Precision | Recall | Enrichment factor | AMPs found |
+|:-:|:---------:|:------:|:-----------------:|:----------:|
+| 1 | 1.000 | 0.002 | 2.00 | 1 |
+| 5 | 1.000 | 0.010 | 2.00 | 5 |
+| 10 | 1.000 | 0.020 | 2.00 | 10 |
+| 20 | 1.000 | 0.040 | 2.00 | 20 |
+| 50 | 0.900 | 0.090 | 1.80 | 45 |
+| 100 | 0.870 | 0.174 | 1.74 | 87 |
+| 200 | 0.835 | 0.334 | 1.67 | 167 |
+
+**Threshold-based operating characteristic:**
+
+| Operating point | Threshold | Precision | Recall | F1 | Candidates above |
+|:---------------:|:---------:|:---------:|:------:|:--:|:----------------:|
+| Best F1 | 0.6323 | 0.6337 | 0.9240 | **0.7518** | 729 (462 AMPs + 267 decoys) |
+| 80% recall | 0.4943 | 0.5000 | 0.8000 | 0.6667 | 1000 (500 AMPs + 500 decoys) |
+
+**Key findings:**
+
+1. **Top-20 triage is perfect** (precision 1.000). The pipeline's top 20 candidates
+   are all genuine AMPs. This is the most relevant operating point for candidate
+   selection: if you pick the top 20, you get 20 real AMPs.
+
+2. **Top-50 still excellent** (0.900). 45/50 top-ranked sequences are AMPs. The
+   pipeline enriches AMPs 1.8× over random at k=50.
+
+3. **Enrichment persists to k=200** (0.835, 1.67×). Even at 200 candidates, the
+   pipeline maintains strong enrichment.
+
+4. **Best F1 threshold at 0.6323** (F1=0.7518) — this is the threshold that
+   maximises precision+recall balance. At this threshold, 729 of 1000 candidates
+   score above 0.6323, of which 462 are true AMPs and 267 are false positives.
+
+5. **At 80% recall, precision drops to base-rate** (0.5000). This is an honest
+   limitation: to capture 80% of AMPs, you must accept ~80% of decoys as well.
+   The score distribution of AMPs and decoys overlaps substantially in the
+   middle range (0.5–0.75). High-recall triage is not the pipeline's strength.
+
+6. **For operational use:** The pipeline is best used as a small-k triage tool
+   (pick top 20–50 candidates where precision is ≥0.90). For large-scale
+   screening, use the best-F1 threshold (0.63) which gives precision 0.63 and
+   recall 0.92 — a practical balance.
+
+**Honest limitation:** This benchmark uses a balanced 50/50 dataset. In real
+screening, the AMP base rate may be much lower (1–10%), which would reduce
+precision at every operating point. The enrichment factors (1.67–2.00×) are
+dataset-dependent and may not generalise to low-prevalence screening scenarios.
+
+### Cluster-Split Benchmark (near-duplicate de-inflation, n=191)
+
+> Added 2026-07-01. The standard benchmark treats all 95 AMPs as independent samples.
+> 33 of 95 AMPs are in 14 near-duplicate clusters (sim >= 0.70): magainin-1/2/3,
+> protegrin-1/2/3, tachyplesin-I/II/polyphemusin-I, indolicidin/analog/lys-analog, etc.
+> The cluster-aware bootstrap resamples clusters (not sequences) to produce an honest CI.
+
+| Metric | Pipeline (pipeline.yaml) | Phase3 (phase3.yaml) |
+|--------|:-----------------------:|:-------------------:|
+| Full AUROC | 0.7832 | 0.7448 |
+| Standard CI₉₅ | 0.717–0.8423 | 0.6741–0.8118 |
+| **Cluster-aware CI₉₅** | **0.7061–0.8526** | **0.6591–0.8237** |
+| Representative AUROC (1/cluster) | 0.7607 | 0.7196 |
+| Representative CI₉₅ | 0.6854–0.8301 | 0.6372–0.7985 |
+| Held-out AUROC (19 near-dup AMPs) | 0.8734 | 0.8454 |
+| Independent clusters | 76 / 95 | 76 / 95 |
+| AMPs in multi-member clusters | 33 / 95 | 33 / 95 |
+| Multi-member clusters | 14 | 14 |
+
+**Key finding:** The cluster-aware CI (0.7061–0.8526) is wider than the standard CI
+(0.717–0.8423) on the upper end but the lower bound drops below the standard CI
+(0.7061 vs 0.717). The representative-only AUROC (0.7607, CI: 0.6854–0.8301) confirms
+the signal is not entirely driven by near-duplicate redundancy — but the CI lower
+bound (0.6854) dips below the 0.70 synthesis gate threshold. The pipeline passes the
+cluster-aware gate (CI lo > 0.65) but with less margin than the standard benchmark
+suggested. The held-out AUROC (0.8734) is high because held-out near-duplicates share
+composition features with their cluster representatives — this is expected and not
+evidence of generalisation to novel sequence space.
+
+**Verdict:** Signal survives near-duplicate de-inflation. The synthesis gate (AUROC >
+0.70) holds on the full set and the cluster-aware CI lower bound stays above 0.65.
+The representative-only CI lower bound (0.6854) crossing below 0.70 is an honest
+limitation: the pipeline has real but modest discriminative power, and the headline
+CI was slightly overconfident.
+
+Run: `openamp-foundry bench cluster-split`
+
+### Historical baselines
+
+| Point | Benchmark | AUROC | Phase3 AUROC | Source |
+|-------|-----------|-------|--------------|--------|
+| **Expanded** | **500 AMP + 500 decoy (n=1000)** | **0.7792** | **0.7744** | v0.5.29 (Loop 11) |
+| Standard | 95 AMP + 96 decoy (n=191) | 0.7832 | 0.7448 | PR #110 |
+| Original demo set | 43 AMP + 44 decoy (n=87) | 0.8420 | 0.8266 | PR #72 |
+| Pre-face-bonus | 43 + 44 | 0.8348 | 0.8126 | PR #70 |
+| Pre-windowed-mu_h | 43 + 44 | 0.8047 | 0.7846 | PR #66 |
+| Pre-Trp-bonus | 43 + 44 | 0.8164 | — | PR #65 (transient) |
+
+**Note:** The expanded benchmark (500+500, n=1000) is now the primary benchmark.
+The n=191 benchmark is retained for backward comparison. The expanded set is more
+representative of diverse AMP classes and provides ~2.3× tighter confidence intervals.
+Historical baselines from the demo set (n=87) should not be directly compared with
+the expanded benchmark — the helic-centric scorer's strong performance on small
+amphipathic-helix sets does not reflect performance on diverse AMP classes.
+
+---
+
+### Per-Family Benchmark Breakdown (by structural class)
+
+> Added 2026-07-05 (v0.5.37). The expanded 500-AMP benchmark reports a single
+> AUROC for all AMPs. This benchmark stratifies the AMP set by heuristic
+> structural class to reveal which families the pipeline handles well or poorly.
+>
+> Classification rules (mutually exclusive, priority order): cysteine_rich (≥2 Cys),
+> short (≤12 AA), proline_rich (Pro ≥ 15%), highly_cationic (charge ≥ 4.0),
+> moderately_cationic (charge 2.0–3.9), low_charge (charge < 2.0).
+>
+> Run: `make bench-per-family`
+
+| Class | N | AUROC | CI₉₅ | Δ vs baseline | Mean ensemble | Description |
+|-------|:-:|:-----:|:----:|:-------------:|:-------------:|-------------|
+| highly_cationic | 73 | **0.9583** | 0.936–0.976 | +0.1791 | 0.8700 | Net charge pH 7.4 ≥ 4.0 |
+| moderately_cationic | 115 | **0.8940** | 0.868–0.918 | +0.1148 | 0.8355 | Net charge pH 7.4 2.0–3.9 |
+| cysteine_rich | 153 | **0.7230** | 0.677–0.768 | −0.0562 | 0.7918 | β-sheet / disulfide-stabilised |
+| low_charge | 118 | **0.6925** | 0.642–0.738 | −0.0867 | 0.7812 | Net charge pH 7.4 < 2.0 |
+| short | 21 | **0.6095** | 0.486–0.727 | −0.1697 | 0.7608 | Length ≤ 12 AA |
+| proline_rich | 20 | **0.5861** | 0.418–0.735 | −0.1931 | 0.7534 | Pro fraction ≥ 0.15 |
+| **all_amps (baseline)** | **500** | **0.7792** | **0.750–0.807** | — | **0.8079** | Full AMP set |
+
+**Key findings:**
+
+1. **Pipeline is charge-dominated.** Classes with higher charge (highly_cationic
+   AUROC 0.958, moderately_cationic 0.894) outperform the baseline by a wide
+   margin. The two classes account for 188/500 AMPs (37.6%) and drive the
+   overall AUROC. This is consistent with the easy baseline benchmark (v0.5.30):
+   charge density alone achieves AUROC 0.8166.
+
+2. **Proline-rich AMPs are the worst-handled class** (AUROC 0.586, CI includes
+   0.50). This is expected — proline-rich AMPs (Bac2A, PR-39, indolicidin) have
+   non-helical, extended structures that the helic-centric activity scorer does
+   not reward. Wet-lab selection should avoid overweighting the ensemble score
+   for proline-rich families without corroborating evidence.
+
+3. **Short AMPs (≤12 AA) also perform poorly** (AUROC 0.610, CI includes 0.50).
+   Short sequences have insufficient residues for the hydrophobic-moment and
+   helix-wheel features to be meaningful. The pipeline's physicochemical proxies
+   are designed for optimal 15–25 AA range.
+
+4. **Cysteine-rich AMPs show moderate discrimination** (AUROC 0.723) despite the
+   pipeline lacking any explicit β-sheet or disulfide scoring. The signal comes
+   from secondary features (composition, charge, hydrophobicity) that correlate
+   with cysteine-rich AMPs — not from cysteine-specific modeling.
+
+5. **Low-charge AMPs underperform the baseline** (AUROC 0.693). AMPs with net
+   charge < 2.0 are harder to distinguish from decoy sequences, which also have
+   low average charge.
+
+6. **Implication for candidate selection:** Top-ranked candidates are likely to
+   be highly or moderately cationic AMPs with well-formed amphipathic helices.
+   The pipeline systematically undervalues non-helical, short, low-charge, or
+   proline-rich candidates. Diversity selection should deliberately compensate.
+
+**Shipped response (v0.5.38):**
+- `openamp-foundry pilot-panel --min-per-structural-class 1` can reserve one
+  slot per heuristic structural class before normal seed/remainder fill.
+- Default remains `0`, preserving existing behavior.
+- This improves assay-panel reviewability. It does not fix the scorer.
+
+---
+
+## Candidate Panel
+
+| Metric | Value |
+|--------|-------|
+| Wave 0 panel size | 20 candidates |
+| Wave 0 scaffold families | 7 (SEED-001, 003, 005, 006, 007, 008, 009) |
+| **Wave 1 final panel (Wave 0.5)** | **24 candidates** |
+| **Wave 1 scaffold families** | **15 (Wave 0 carry-overs + 9 new families)** |
+| Wave 0.5 new families | 10 (SEED-010 through SEED-019) |
+| Wave 0.5 shortlisted | 60 (6 per family × 10 families) |
+| Wave 0.5 novelty (v2, 27k DB) | 1 RELATED_NOVEL / 39 CLOSE_RELATIVE / 19 KNOWN_VARIANT / 1 EXACT_MATCH_OR_FRAGMENT |
+| Wave 0.5 novelty v1 (72 refs, Levenshtein) | 53/60 RELATED_NOVEL or higher — v1 method overstated novelty |
+| Broad novelty Wave 0 (72 refs) | 16/20 NOVEL, 3 KNOWN_VARIANT, 1 CLOSE_RELATIVE |
+| 5-tier audit Wave 0 (120 refs) | 13 HIGH_CONFIDENCE_NOVEL + 3 NOVEL + 1 CLOSE_RELATIVE + 3 KNOWN_VARIANT |
+| Wave 0 panel ensemble range | 0.796–0.857 |
+| Wave 0 panel safety range | 0.845–1.000 |
+| Positive control | SEED-001_VAR_064 (magainin-1 derivative, ensemble 0.802) |
+| Blind spot | Melittin scores Safety=1.0 despite hemolysis; hemolysis assay mandatory |
+| Wave 0.5 external predictors | **COMPLETE** — AMPScanner 59/60, AMPActiPred 60/60, Macrel AMP 52/60 |
+| Wave 0.5 activity consensus | **STRONG_ACTIVITY: 52/60 (87%)** — passes W0.5-3 gate (≥70%) |
+| Wave 0.5 HemoFinder | LOW: 40/60 (67%), HIGH: 20/60 |
+| Wave 0.5 AntiCP 2.0 | Non-AntiCP: 4/60 (7%), AntiCP: 56/60 |
+| Best clean candidate | SEED-019_VAR_004 (RVRIRLVKRLLK) — STRONG + Non-AntiCP + HemoFinder LOW |
+| **Wave 0.5b** | **23 candidates shortlisted** (5 new families SEED-020→024, no aromatics) |
+| Wave 0.5b design goal | Lower AntiCP risk: no W/Y/F residues; broken helix pattern |
+| Wave 0.5b expected AntiCP | < 0.50 (by design — pending external predictor confirmation) |
+
+### Wave 1 Panel Composition (Wave 0.5 output, post-v2 novelty update)
+
+| Role | Count |
+|------|-------|
+| BALANCED_LEAD | 15 |
+| HIGH_UPSIDE_RISKY | 4 |
+| POSITIVE_CONTROL | 1 |
+| SAR_CONTROL | 4 |
+
+### Novel families (Wave 0 leads)
+
+| Family | Mechanism | Panel slots | Novelty | Key risk |
+|--------|-----------|:-----------:|---------|----------|
+| SEED-006 | Mastoparan-X, wasp-venom helix insertion | 2 | 0.643 | Mast-cell degranulation |
+| SEED-007 | Bombolitin-II, bumblebee venom | 1 | 0.643 | Met oxidation at pos 6 |
+| SEED-008 | Puroindoline-a, Trp-rich interfacial | 2 | 0.692 | DKP risk (FP), HemoFinder HIGH |
+| SEED-009 | Bac2A, proline-rich intracellular | 2 | 0.647 | AntiCP risk, RPMI-1640 arm |
+
+### New Wave 0.5 families in Wave 1 panel (v2 novelty classes)
+
+| Family | Mechanism | Panel slots | v2 Novelty class |
+|--------|-----------|:-----------:|---------------|
+| SEED-010 | Histatin-5 P-113 oral innate AMP fragments | 1 | KNOWN_VARIANT (SAR_CONTROL) |
+| SEED-011 | Pro-kinked amphipathic | 1 | CLOSE_RELATIVE |
+| SEED-012 | Glycine-rich low-hydrophobicity design | 2 | CLOSE_RELATIVE |
+| SEED-014 | Cathelicidin-mini scattered helix | 1 | CLOSE_RELATIVE |
+| SEED-015 | KFLK de novo cationic helix | 1 | CLOSE_RELATIVE |
+| SEED-016 | RRWK dual-Trp low-aromatic | 2 | CLOSE_RELATIVE |
+| SEED-018 | GKRK scattered-charge design | 2 | CLOSE_RELATIVE |
+| SEED-019 | Arg-Val alternating pattern | 2 | RELATED_NOVEL / CLOSE_RELATIVE |
+
+---
+
+## External Predictor Results (Wave 0.5)
+
+| Tool | Status | Result |
+|------|--------|--------|
+| CAMPR4 | ⏳ Not submitted | PENDING |
+| AMPScanner v2 | ✅ Complete | 59/60 AMP (98%) |
+| AMPActiPred | ✅ Complete | 60/60 ABP (100%) |
+| Macrel AMP | ✅ Complete | 52/60 AMP (87%) |
+| HemoFinder | ✅ Complete | 40/60 LOW (67%), 20/60 HIGH |
+| AntiCP 2.0 | ✅ Complete | 4/60 Non-AntiCP, 56/60 AntiCP |
+| Macrel Hemolysis | ✅ Complete | 60/60 flagged (non-discriminating — flags all) |
+
+**Activity consensus (3 tools, CAMPR4 excluded):** 52/60 STRONG_ACTIVITY, 7/60 MODERATE, 1/60 WEAK
+
+**Safety profile concern:** 56/60 AntiCP-positive is expected for amphipathic-helix designs.
+AntiCP 2.0 detects anticancer peptide (ACP) patterns, not antimicrobial activity directly.
+Mitigation: Wave 0.5b designs avoid aromatic residues and pure amphipathic helix.
+
+Current-state summary is documented here. Wave 0.5 machine-readable CSV outputs are
+generated locally via `make wave0-5-fill-external` when `outputs/wave05_combined_consensus.csv`
+is present; they are not guaranteed to be committed in every checkout.
+
+---
+
+---
+
+## Expert Ablation Benchmark (v0.5.x — added 2026-07-01; re-run on n=1000 v0.5.33)
+
+> The expert composite scorer (`scoring/expert.py`) adds four components beyond the
+> simple ensemble: selectivity, serum stability, helix-hinge, and k-mer motif novelty.
+> This ablation tests whether those additions improve binary AMP-vs-decoy discrimination
+> or are complexity that does not earn its keep.
+>
+> Run: `make bench-expert-ablation` (n=191) or `make bench-expert-ablation-500` (n=1000)
+
+### Original benchmark (n=191)
+
+| Metric | Pipeline (pipeline.yaml) | Phase3 (phase3.yaml) |
+|--------|:-----------------------:|:-------------------:|
+| Ensemble AUROC | 0.7832 | 0.7448 |
+| Ensemble CI₉₅ | 0.717–0.8423 | 0.6741–0.8118 |
+| Expert composite AUROC | 0.7097 | 0.7097 |
+| Expert CI₉₅ | 0.6384–0.7871 | 0.6384–0.7871 |
+| **Delta (expert − ensemble)** | **−0.0735** | **−0.0351** |
+| Verdict | Expert LOWER | Expert LOWER |
+
+### Expanded benchmark (n=1000, added v0.5.33)
+
+| Metric | Pipeline (pipeline.yaml) |
+|--------|:-----------------------:|
+| Ensemble AUROC | 0.7792 |
+| Ensemble CI₉₅ | 0.7503–0.8070 |
+| Expert composite AUROC | 0.6857 |
+| Expert CI₉₅ | 0.6523–0.7170 |
+| **Delta (expert − ensemble)** | **−0.0935** |
+| Verdict | Expert LOWER |
+
+Run: `make bench-expert-ablation-500`
+
+### Per-component comparison (n=191 vs n=1000)
+
+| Component | n=191 AUROC | n=191 class | n=1000 AUROC | n=1000 class | Change |
+|-----------|:-----------:|:-----------:|:------------:|:------------:|:------:|
+| activity | 0.8137 | Signal-bearing | **0.7969** | Signal-bearing | ↓0.0168 (stable) |
+| selectivity_proxy | 0.7729 | Signal-bearing | **0.6702** | Signal-bearing | ↓0.1027 (weaker on diverse set) |
+| hinge_selectivity | 0.5180 | Near-zero | **0.5004** | Near-zero | ↓0.0176 (stable) |
+| novelty | 0.5000 | Near-zero | **0.5000** | Near-zero | 0.0000 (by construction) |
+| motif_novelty | 0.5000 | Near-zero | **0.5000** | Near-zero | 0.0000 (by construction) |
 | synthesis | 0.4228 | Anti-signal | **0.4968** | Near-zero | **↗ Reclassified** — n=191 artifact |
 | boman_activity | 0.4620 | Near-zero | **0.3291** | Anti-signal | **↘ Reclassified** — stronger anti-AMP on diverse set |
 | safety | 0.3487 | Anti-signal | **0.4459** | Anti-signal | ↑0.0972 (less extreme) |
