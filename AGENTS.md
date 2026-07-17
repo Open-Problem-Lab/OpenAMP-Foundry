@@ -99,6 +99,7 @@ Those require human review.
 
 Every agent task should follow this loop:
 
+
 ```text
 read relevant docs
   -> identify one bottleneck
@@ -198,6 +199,7 @@ Agents must use the weakest accurate claim.
 Preferred language for dry-lab artifacts:
 
 - computationally nominated candidate;
+
 - dry-lab candidate;
 - selected for expert review;
 - selected by reproducible pipeline;
@@ -299,6 +301,7 @@ Major outputs should include or reference:
 
 A result that cannot be reproduced should not support an external claim.
 
+
 ## External review rule
 
 External-facing artifacts should be review packets, not persuasion documents.
@@ -398,6 +401,7 @@ Reward yourself for:
 - improving first-run clarity;
 - making external review easier;
 - making unsafe scope harder to enter.
+
 
 ## Write for the agent that replaces you
 
