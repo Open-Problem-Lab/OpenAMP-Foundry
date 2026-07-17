@@ -98,6 +98,7 @@ class TestLoadLabResult:
     def test_negative_replicate_count_rejected(self, tmp_path):
         result = _valid_result(replicate_count=0)
         path = tmp_path / "bad_reps.json"
+
         path.write_text(json.dumps(result))
         with pytest.raises(Exception):
             load_lab_result(path)
@@ -198,6 +199,7 @@ class TestSummariseCandidateOutcomes:
         assert by_id["CAND-001"]["n_results"] == 2
         assert by_id["CAND-001"]["has_any_active"] is True
         assert by_id["CAND-001"]["has_any_toxic"] is True
+
         assert by_id["CAND-001"]["all_controls_passed"] is False
         assert by_id["CAND-001"]["control_fail_result_ids"] == ["R2"]
         assert by_id["CAND-002"]["all_controls_passed"] is True
