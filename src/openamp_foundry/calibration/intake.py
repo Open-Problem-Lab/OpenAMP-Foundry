@@ -98,7 +98,6 @@ def _to_float(value):
 
 
 def _candidate_predictions(row):
-
     """Extract the prediction columns we will compare against lab outcomes."""
     return {
         "ensemble": _to_float(row.get("ensemble")),
@@ -198,7 +197,6 @@ def _aggregate_per_candidate(results):
 
         if r.get("assay_type") == "cytotoxicity_mammalian":
             slot["n_cytotoxicity"] += 1
-
 
         qual = r.get("result_qualitative")
         if qual == "active":
@@ -300,7 +298,6 @@ def _per_candidate_rows(panel_rows, per_candidate_actuals):
     results get ``has_lab = None``.
     """
     rows = []
-
     for row in panel_rows:
         cid = row.get("candidate_id", "")
         actuals = per_candidate_actuals.get(cid)
@@ -401,7 +398,6 @@ def build_calibration_intake_report(panel_csv, results_dir):
         "n_lab_results": len(results),
         "n_invalid_lab_result_files": len(invalid_lab_result_files),
         "invalid_lab_result_files": invalid_lab_result_files,
-
         "input_validation_status": (
             "blocked_on_invalid_results"
             if invalid_lab_result_files
@@ -502,7 +498,6 @@ def write_calibration_intake_markdown(report, out_path):
         lines.append(
             f"| {row['candidate_id']} | {row['seed']} | {row['length']} "
             f"| {ens_str} | {act_str} | {'yes' if has_lab else 'no'} |"
-
         )
 
     lines += [
