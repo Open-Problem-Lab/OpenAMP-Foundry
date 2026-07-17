@@ -99,6 +99,7 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 - BASELINE 6772→6835
 - Closes Phase C C8 — stale benchmark authority is now machine-preventable via check_no_deprecated_in_ranking()
 
+
 ### v0.10.34 — Phase C C1: Machine-readable benchmark registry
 - Added `src/openamp_foundry/evidence/benchmark_registry.py` — benchmark card registry
 - 5 BMC- cards: BMC-0001 (precision@k, leakage_aware_split), BMC-0002 (charge-matched, charge_stratified), BMC-0003 (calibration, random_70_30), BMC-0004 (family-stratified, family_stratified), BMC-0005 (cheap enemy comparison, leakage_aware_split)
@@ -198,6 +199,7 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 - BASELINE 6044→6107
 - CLI: openamp-foundry synthetic-boundary-audit-record-check
 - Closes Phase G G8 — proof-ladder boundary enforcement is now an auditable evidence artifact
+
 Warning: truncated output (original token count: 18549)
 Total output lines: 100
 
@@ -271,6 +273,7 @@ Total output lines: 100
 > **New in v0.5.89:** Simulation module registry (H1) — `SimulationModuleEntry` dataclass tracks module_id, name, description, status, evidence_level, baseline_comparison, scope, maintainer, and notes. `SIMULATION_MODULE_REGISTRY` holds 4 entries (membrane_proxy, structure_proxy, dummy_membrane_proxy, external_adapter_placeholder). Lookup functions: `get_module_entry()`, `list_module_entries()` with status/min_evidence filtering, `get_active_modules()`, `registry_summary()` with total/by_status/by_evidence_level/active_module_ids keys. `validate_registry()` checks module_id, name, baseline_comparison, evidence_level 1-6, valid status, duplicate detection. CLI (`openamp-foundry simulation-registry`) supports `--list`, `--show`, `--status`, `--min-evidence`, `--format text|json`. Schema (`schemas/simulation_module_registry.schema.json`). `make simulation-registry` target. 28 tests. 3106 total. Starts Phase H (virtual assay discipline).
 > **New in v0.5.87:** Calibration decision review checklist (G9) — `build_checklist()` produces a structured `CalibrationDecisionChecklist` with 12 checklist items (10 required) covering data quality, statistical validity, safety consistency, approval, and documentation. Each item has an id, category, question, rationale, and required flag. `CalibrationDecisionChecklist` dataclass tracks responses, notes, overall_pass, and missing_required. CLI (`openamp-foundry calibration-decision-checklist`) accepts `--checklist-id`, `--date`, `--reviewer`, `--responses-json`, `--out-json`, `--out-md`. JSON + Markdown output. Schema (`schemas/calibration_decision_checklist.schema.json`). `make calibration-decision-checklist` target. 14 tests. 3063 total. Makes human review structured and auditable.
 > **New in v0.5.86:** Synthetic-result policy enforcement (G8) — `check_synthetic_result_policy()` and `run_policy_batch()` enforce that synthetic/simulation outputs cannot raise the proof-ladder level of a candidate. Levels 4+ require wet-lab evidence; synthetic/unknown sources are rejected for such proposals. CLI (`openamp-foundry synthetic-result-policy-check`) accepts `--proposals-json`, `--out-json`, `--out-md`. Schema (`schemas/synthetic_result_policy_check.schema.json`). `make synthetic-result-policy-check` target. 27 tests. 3049 total. Anti-overclaim safeguard.
+
 > **New in v0.5.85:** Result-quality flag propagation (G7) — `assess_result_quality()` and `filter_results_for_calibration()` propagate result-quality flags into the calibration engine. Candidates with contamination or assay interference are excluded; candidates with 2+ quality flags are excluded; candidates with 1 flag are included with caution; clean candidates are fully included. `QUALITY_FLAGS` dictionary (8 flags). `ResultQualityReport` dataclass. CLI (`openamp-foundry result-quality-filter`) accepts `--results-json`, `--out-json`, `--out-md`. JSON + Markdown output. Schema (`schemas/result_quality_report.schema.json`). `make result-quality-filter` target. 27 tests. 3022 total.
 > **New in v0.5.84:** Calibration-overfit warning (G6) — `check_cohort_overfit_risk()` and `run_overfit_check()` flag when a calibration cohort is too small relative to model parameters. Warns at three severity levels (critical/warning/caution/none). CLI (`openamp-foundry calibration-overfit-check`) accepts comma-separated cohort sizes, model params, n features. JSON + Markdown output. Schema (`schemas/calibration_overfit_check.schema.json`). `make calibration-overfit-check` target. 21 tests. 2995 total.
 > **New in v0.5.83:** Batch-2 selection rationale report (G5) — CLI (`openamp-foundry batch-rationale`) that generates a synthetic candidate pool, runs the batch-2 selector with configurable weights, and produces a per-candidate rationale report classifying each selected candidate into exploit / explore / diversity / combined roles. Reports weight configuration, role breakdown summary, per-candidate contributions (ensemble×weight, uncertainty×weight, diversity×weight), safety gate impact, and caveats. Schema (`schemas/batch_rationale_report.schema.json`). `make batch-rationale` target. 19 tests. 2974 total.
@@ -371,6 +374,7 @@ Total output lines: 100
 > Added 2026-07-05. The original benchmark (95 AMPs + 96 decoys, n=191) was
 > expanded to 500 AMPs + 500 length-matched decoys (n=1000) using UniProt
 > reviewed AMPs (CC BY 4.0) and APD6 natural sequences (academic use).
+
 > This provides a more honest estimate of pipeline discriminative power
 > with tighter confidence intervals.
 >
@@ -472,6 +476,7 @@ benchmark set) vs length-matched decoys.
 | Length + charge (Z-scored) | 0.5024 | Length adds nothing (matched decoys) |
 | **Pipeline ensemble** | **0.7792** | **Below best trivial (Δ=−0.0374)** |
 
+
 **Honest finding:** The pipeline ensemble does NOT outperform charge density
 alone on AMP-vs-Swiss-Prot-decoy discrimination. This is expected because:
 
@@ -570,6 +575,7 @@ Next benchmark bottleneck:
 - Build a biologically plausible charge-balanced negative set or a benchmark
   framed around the actual objective: active, low-hemolysis, novel, synthesizable
   candidates versus toxic, copied, unstable, or inactive controls.
+
 
 ### Order-Dependent Features Benchmark (which features survive scrambling?)
 
@@ -671,6 +677,7 @@ features cannot capture.
    score above 0.6323, of which 462 are true AMPs and 267 are false positives.
 
 5. **At 80% recall, precision drops to base-rate** (0.5000). This is an honest
+
    limitation: to capture 80% of AMPs, you must accept ~80% of decoys as well.
    The score distribution of AMPs and decoys overlaps substantially in the
    middle range (0.5–0.75). High-recall triage is not the pipeline's strength.
@@ -772,6 +779,7 @@ amphipathic-helix sets does not reflect performance on diverse AMP classes.
    overall AUROC. This is consistent with the easy baseline benchmark (v0.5.30):
    charge density alone achieves AUROC 0.8166.
 
+
 2. **Proline-rich AMPs are the worst-handled class** (AUROC 0.586, CI includes
    0.50). This is expected — proline-rich AMPs (Bac2A, PR-39, indolicidin) have
    non-helical, extended structures that the helic-centric activity scorer does
@@ -871,6 +879,7 @@ amphipathic-helix sets does not reflect performance on diverse AMP classes.
 |------|--------|--------|
 | CAMPR4 | ⏳ Not submitted | PENDING |
 | AMPScanner v2 | ✅ Complete | 59/60 AMP (98%) |
+
 | AMPActiPred | ✅ Complete | 60/60 ABP (100%) |
 | Macrel AMP | ✅ Complete | 52/60 AMP (87%) |
 | HemoFinder | ✅ Complete | 40/60 LOW (67%), 20/60 HIGH |
@@ -972,6 +981,7 @@ has been added in v0.5.9 (see Within-AMP Selectivity Benchmark section below).
 ---
 
 
+
 ## Within-AMP Selectivity Benchmark (v0.5.x — added 2026-07-01)
 
 > The expert ablation benchmark found that safety, synthesis, and serum stability are
@@ -1071,6 +1081,7 @@ upon as a hemolysis predictor.
 
 | Component | Individual AUROC (n=35) | Weight | Signal source |
 |-----------|:-----------------------:|:------:|---------------|
+
 | Synthesis difficulty (1 - synth_feasibility) | 0.8027 | 0.30 | Incidental: hemolytic AMPs harder to synthesize |
 | Aromatic fraction (F/W/Y density) | 0.8299 | 0.30 | Trp/Phe intercalation in both membrane types |
 | Cationic-on-hydrophobic-face fraction | 0.7585 | 0.20 | Poor amphipathic face segregation |
@@ -1171,6 +1182,7 @@ A scorer that triages correctly should have all three AUROCs > 0.5:
    A naive virtual-assay composite does not outperform the ensemble.
 
 6. **The gate_triage scorer (activity × rich_selectivity) is the first scorer
+
    to triage correctly with strong selective_vs_hemolytic separation** (0.666).
    Unlike the old triage_score, it uses rich_selectivity (detection AUROC 0.714,
    significant) instead of hemolysis_risk (not significant). It also achieves
@@ -1271,6 +1283,7 @@ selection.
 
 The selectivity proxy uses only `net_charge_ph74` and `gravy`. The top feature,
 `hydrophobic_fraction` (AUROC 0.6745, CI 0.58-0.77), is NOT used by the proxy.
+
 Six of eight significant features are not used by the current selectivity model.
 
 | Feature | Detection AUROC | CI 95% | Direction | Used by proxy? |
@@ -1371,6 +1384,7 @@ with selective_vs_hemolytic > 0.65.**
 
 | Scorer | sel > decoy | hem > decoy | sel > hem | Top-20 (sel/hem/dec) | Correct? |
 |--------|:-----------:|:-----------:|:---------:|:---------------------:|:--------:|
+
 | ensemble | 0.848 | 0.891 | 0.466 | 14/6/0 | NO |
 | selectivity_proxy | 0.782 | 0.795 | 0.610 | — | YES (weak) |
 | expert_composite | 0.757 | 0.746 | 0.545 | 15/0/5 | YES (decoy leak) |
@@ -1471,6 +1485,7 @@ Decoys score low on activity. Selective AMPs score moderately on both.
 | 2026-07-05 | **Benchmark card consolidated** with all Phase 1 findings: expanded benchmark, cluster-split-500, multi-negative, easy baseline, order-dependence, precision@k, rich selectivity, gate_triage, expert ablation (n=1000), updated known biases. Phase 1 exit criterion: benchmark card is now externally reviewable. `docs/evidence/BENCHMARK_CARD.md`. | OpenAMP loop 16 |
 | 2026-07-05 | **Easy baseline benchmark added:** charge density alone (AUROC 0.8166) beats pipeline ensemble (0.7792, Δ=−0.0374). Honest finding: expected — pipeline optimizes for safety, not raw discrimination. `scripts/benchmarks/baseline_trivial.py`, `make bench-easy-baseline`, CI informational step. | OpenAMP loop 12 |
 | 2026-07-03 | **Rich selectivity integrated into production pipeline:** rich_selectivity_score now computed in score_candidates() (pipeline.py), replaces hemolysis_safety as the expert composite hemolysis-risk component (weight 0.10), used in pilot_priority formula, displayed in pilot panel report, and included in evidence certificates. Expert AUROC drops 0.7119→0.7097 (−0.0022) — acceptable tradeoff: the expert now includes a significant hemolysis detector (CI excludes 0.5) instead of the old non-significant one. | OpenAMP loop |
+
 | 2026-07-03 | **Two-gate triage composite added:** gate_triage = activity × rich_selectivity, added to triage benchmark. First scorer to pass all three standard triage conditions with strong selective_vs_hemolytic separation (0.666). Top-20: 16 selective / 1 hemolytic / 3 decoy — best distribution. Does NOT pass strict triage (hem_vs_dec 0.489) — honest limitation. Must not replace ensemble activity gate. | OpenAMP loop |
 | 2026-07-03 | **Feature decomposition benchmark added:** per-feature selective_vs_hemolytic AUROC for all 30 scalar physicochemical features. hydrophobic_fraction is the strongest single discriminative feature (0.6745, CI 0.58-0.77) but is NOT used by the selectivity proxy. 8/30 features have significant signal; 6 of those are unused. Provides actionable diagnostic for why composite scorers fail selective_vs_hemolytic discrimination. | OpenAMP loop |
 | 2026-07-04 | **Calibration intake module added:** `openamp-foundry calibration-intake` joins a pilot panel CSV with a directory of validated lab result JSON files, produces a per-candidate prediction-vs-actual report with cohort metrics gated by `MIN_COHORT_SIZE=5`. Descriptive only — does NOT trigger recalibration, weight updates, or selection-rule changes. Synthetic example data in `examples/lab_results/` is clearly labeled in every file and in `examples/lab_results/README.md`. 29 new tests; total 1614 passing. | OpenAMP loop |
