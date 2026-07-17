@@ -98,6 +98,7 @@ command: `openamp-foundry phase-aa-reproducibility-gate-check --entry-json ...`
 or `make phase-aa-reproducibility-gate-check`. It returns success only when
 RMC, DCR, CFP, and SBW artifact IDs are all present. This is a structural
 provenance check, not proof that the underlying run is scientifically correct
+
 or biologically valid.
 
 External-result intake is also fail-closed at the review boundary. Use the
