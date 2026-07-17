@@ -99,6 +99,7 @@ def test_bench_leakage_no_duplicates(tmp_path, capsys):
     assert result["warning"] is None
 
 
+
 def test_bench_leakage_output_file(tmp_path, capsys):
     out = str(tmp_path / "leakage_report.json")
     ret = main([
@@ -198,6 +199,7 @@ def test_phase_aa_reproducibility_gate_check_reports_verified(capsys):
         "--format", "json",
     ])
     assert ret == 0
+
     result = json.loads(capsys.readouterr().out)
     assert result["verdict"] == "reproducibility_verified"
     assert result["n_components_present"] == 4
@@ -298,6 +300,7 @@ def test_validate_scoring_stdout_includes_n_and_auprc(tmp_path, capsys):
     assert data["n_positives"] >= 90  # expanded to 95 AMPs (PR #110)
     assert data["n_negatives"] >= 90  # expanded to 96 decoys (PR #110)
     assert data["benchmark_type"] == "standard"
+
     assert 0.0 < data["auprc"] < 1.0
 
 
@@ -399,6 +402,7 @@ class TestExternalPredict:
         assert ">SEED-009_VAR_033" in content
         assert "RRLPRPGYMPRP" in content
 
+
     def test_external_predict_creates_checklist(self, tmp_path):
         panel_csv = _write_panel(tmp_path)
         checklist = tmp_path / "checklist.md"
@@ -497,6 +501,7 @@ class TestDiversityCheck:
         assert rc == 0
         text = out.read_text(encoding="utf-8")
         assert "Family-Level Structural" in text
+
 
     def test_diversity_check_redundancy_and_optimal_diff_sections(self, tmp_path):
         # Two candidates nearly identical (sim=0.889>0.60) → same cluster.
@@ -598,6 +603,7 @@ def test_pilot_panel_reports_structural_classes_and_floor_flag(tmp_path, capsys)
             "scores": {"ensemble": 0.95, "activity": 0.95, "boman_activity": 0.90, "disagreement": 0.05},
             "features": {"length": 13, "net_charge_ph74": 5.0, "proline_fraction": 0.0},
         },
+
         {
             "candidate_id": "LOW",
             "sequence": "AAAAAAAALLLLL",
@@ -698,6 +704,7 @@ def test_lab_result_report_creates_outputs(tmp_path, capsys):
         "computational_candidate_certificate_hash": "abc123def456",
         "notes": None,
         "disclaimer": (
+
             "This is an experimental result on a computationally nominated candidate. "
             "It does not constitute a drug or clinical claim."
         ),
@@ -797,6 +804,7 @@ class TestNoveltyCheckBroad:
             "--out", str(tmp_path / "novelty.md"),
         ])
         assert rc == 0
+
 
     def test_novelty_check_broad_creates_report(self, tmp_path):
         panel_csv = _write_panel(tmp_path)
@@ -898,6 +906,7 @@ class TestNoveltyCheckBroad:
         ])
         assert rc == 1
         data = json.loads(capsys.readouterr().out)
+
         assert data["status"] == "error"
         assert "not found" in data["message"]
 
