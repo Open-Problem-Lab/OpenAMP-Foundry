@@ -98,7 +98,6 @@ def _run_reviewer_questionnaire(args: argparse.Namespace) -> int:
             f"| Field | Value |\n"
             f"|-------|-------|\n"
             f"| Name | |\n"
-
             f"| Institution | |\n"
             f"| Date | |\n"
             f"| Signature | |\n"
@@ -199,7 +198,6 @@ def _run_ip_report(args: argparse.Namespace) -> int:
         "2. **Sequence deposit** in patent filing for all Strong and Moderate candidates.",
         "3. **Freedom-to-operate** search required for all candidates before publication.",
         "4. Keep control sequences (KNOWN_VARIANT, CLOSE_RELATIVE) in publication as SAR context.",
-
         "5. Do not disclose exact lead sequences publicly until IP path is decided.",
         "",
         "## Limitations",
@@ -300,7 +298,6 @@ def _run_gold_standard(args: argparse.Namespace) -> int:
         for r in panel
     ]
     panel_ens = [p["ensemble"] for p in panel_scores]
-
     panel_min, panel_max = min(panel_ens), max(panel_ens)
     panel_mean = sum(panel_ens) / len(panel_ens)
 
@@ -401,7 +398,6 @@ def _run_novelty_check_broad(args: argparse.Namespace) -> int:
 
     Classification thresholds (Levenshtein similarity):
       KNOWN_VARIANT  >= threshold_known (default 0.70): effectively a known AMP
-
       CLOSE_RELATIVE >= threshold_close (default 0.50): close relative of known AMP
       NOVEL          < threshold_close: no close match in reference database
     """
@@ -502,7 +498,6 @@ def _run_novelty_check_broad(args: argparse.Namespace) -> int:
             "candidate_id": cid,
             "sequence": seq,
             "seed": seed,
-
             "ensemble": ensemble,
             "seed_novelty": seed_novelty,
             "broad_similarity": round(best_sim, 4),
@@ -603,7 +598,6 @@ def _run_novelty_check_broad(args: argparse.Namespace) -> int:
         "## Recommendations",
         "",
         "1. **KNOWN_VARIANT candidates** should be de-emphasised in novelty claims but retained "
-
         "as positive controls that validate the assay platform.",
     ]
 
@@ -704,7 +698,6 @@ def _run_recalibration_gate(args: argparse.Namespace) -> int:
 
     intake_path = Path(args.intake_report)
     if not intake_path.exists():
-
         print(
             json.dumps(
                 {
@@ -805,7 +798,6 @@ def _run_recalibration_gate(args: argparse.Namespace) -> int:
         "reasons": list(verdict.reasons),
         "summary": verdict.summary,
         "out_json": args.out_json,
-
         "out_md": args.out_md,
     }
     print(json.dumps(cli_summary, indent=2))
@@ -906,7 +898,6 @@ def _run_recalibration_engine(args: argparse.Namespace) -> int:
     if is_dry_run:
         # Print diff table instead of writing files
         print(f"Recalibration Engine Proposal{dry_run_label}")
-
         print(f"{'=' * 60}")
         print(f"  Timestamp:      {report['timestamp']}")
         print(f"  Report type:    {report['report_type']}")
@@ -1006,7 +997,6 @@ def _run_calibration_audit(args: argparse.Namespace) -> int:
         write_calibration_audit_json,
         write_calibration_audit_markdown,
     )
-
 
     audit = run_calibration_audit(
         intake_path=args.intake_report,
@@ -1108,7 +1098,6 @@ def _run_synthetic_result_policy_check(args: argparse.Namespace) -> int:
         "failed": result["summary"]["failed"],
         "any_violation": result["any_violation"],
         "dry_lab_only": result["dry_lab_only"],
-
         "out_json": args.out_json,
         "out_md": args.out_md,
     }, indent=2))
@@ -1210,7 +1199,6 @@ def _run_calibration_decision_checklist(args: argparse.Namespace) -> int:
     if args.out_md:
         write_checklist_markdown(checklist, args.out_md)
 
-
     print(json.dumps({
         "status": "ok",
         "checklist_id": checklist.checklist_id,
@@ -1309,7 +1297,6 @@ def _run_validate_simulation_result(args: argparse.Namespace) -> int:
             validated_against=item.get("validated_against", []),
             notes=item.get("notes", []),
         ))
-
 
     batch_result = validate_simulation_result_batch(results, strict=args.strict)
 
@@ -1411,7 +1398,6 @@ def _run_domain_review_outcome_check(args):
             for e in result.errors:
                 print(f"    - {e}")
         if result.warnings:
-
             print("  Warnings:")
             for w in result.warnings:
                 print(f"    - {w}")
@@ -1512,7 +1498,6 @@ def _run_simulation_baseline_check(args: argparse.Namespace) -> int:
 
     entry = get_baseline_declaration(module_id)
     if entry is None:
-
         print(json.dumps({
             "status": "error",
             "error": f"Unknown module_id '{module_id}'. Use --list to see available modules.",
@@ -1613,7 +1598,6 @@ def _run_simulation_ensemble_check(args: argparse.Namespace) -> int:
     sequence = args.sequence
     output_format = getattr(args, "format", "text")
     score_key = args.score_key
-
     threshold = args.threshold
 
     try:
@@ -1713,7 +1697,6 @@ def _run_reviewer_briefing_check(args: argparse.Namespace) -> int:
             print("  Reviewer briefing package validated.")
 
     return 0 if result.passed else 3
-
 
 
 def _run_audit_chain_check(args: argparse.Namespace) -> int:
@@ -1816,7 +1799,6 @@ def _run_phase_aa_reproducibility_gate_check(args: argparse.Namespace) -> int:
     return 0 if gate.verdict == "reproducibility_verified" else 3
 
 
-
 def _run_pre_registration_check(args: argparse.Namespace) -> int:
     """Validate a pre-registration form passed as JSON."""
     entry_dict = json.loads(args.entry_json)
@@ -1917,7 +1899,6 @@ def _run_simulation_provenance(args: argparse.Namespace) -> int:
         validate_provenance_record,
     )
 
-
     run_id = args.run_id
     module_id = args.module_id
     module_version = args.module_version
@@ -2016,7 +1997,6 @@ def _run_simulation_deprecation_check(args: argparse.Namespace) -> int:
         print()
         print("Dry-lab only. Deprecation checks are computational safeguards,")
         print("not biological proof.")
-
 
     return 3 if result["any_blocked"] else 0
 
@@ -2118,7 +2098,6 @@ def _run_simulation_evidence_packet(args: argparse.Namespace) -> int:
         print(json.dumps(summary, indent=2))
     else:
         status = "PASS" if packet.all_checks_passed else "FAIL"
-
         print(f"Simulation Evidence Packet: {packet.module_id}")
         print(f"  Status:                 {status}")
         print(f"  Claimed evidence level: {packet.claimed_evidence_level}")
@@ -2219,7 +2198,6 @@ def _run_artifact_version(args: argparse.Namespace) -> int:
 
 def _run_candidate_manifest(args: argparse.Namespace) -> int:
     """Build and optionally validate a candidate manifest from CLI arguments."""
-
     from openamp_foundry.manifests.candidate_manifest import (
         make_candidate_manifest,
         manifest_to_dict,
@@ -2320,7 +2298,6 @@ def _run_benchmark_card(args: argparse.Namespace) -> int:
 
     output_format = getattr(args, "format", "text")
     if output_format == "json":
-
         result = {
             "benchmark_id": card.benchmark_id,
             "benchmark_name": card.benchmark_name,
@@ -2421,7 +2398,6 @@ def _run_artifact_changelog(args: argparse.Namespace) -> int:
         print(f"Total entries:  {summary['total']}")
         print(f"By change type: {dict(sorted(summary['by_change_type'].items()))}")
         print(f"Breaking:       {summary['breaking_changes']}")
-
         print(f"Artifacts:      {', '.join(summary['artifacts_covered'])}")
         print(f"Dry-lab only:   {summary['dry_lab_only']}")
         if validation_errors:
@@ -2522,7 +2498,6 @@ def _run_adapter_check(args: argparse.Namespace) -> int:
                 print(f"  - {err}")
         if result.warnings_list:
             print("Warnings:")
-
             for w in result.warnings_list:
                 print(f"  - {w}")
         print()
@@ -2623,7 +2598,6 @@ def _run_artifact_compat_check(args: argparse.Namespace) -> int:
 
 
 def _run_contribution_check(args: argparse.Namespace) -> int:
-
     """Validate a contribution intake dict."""
     from openamp_foundry.community.contribution_intake import validate_intake_dict
 
@@ -2723,7 +2697,6 @@ def _run_decision_log(args: argparse.Namespace) -> int:
         print(f"\nTotal: {len(GOVERNANCE_DECISIONS)} decisions  (dry_lab_only: True)")
 
     return 0
-
 
 
 def _run_release_request_check(args: argparse.Namespace) -> int:
@@ -2826,7 +2799,6 @@ def _run_adoption_scorecard(args: argparse.Namespace) -> int:
     """Build an adoption scorecard from dimension inputs."""
     from openamp_foundry.adoption.scorecard import build_scorecard
 
-
     try:
         dimension_inputs = json.loads(args.scores_json)
     except (json.JSONDecodeError, TypeError) as e:
@@ -2926,7 +2898,6 @@ def _run_rotation_plan_check(args: argparse.Namespace) -> int:
                 print(f"  - {err}")
         if result.warnings:
             print("Warnings:")
-
             for w in result.warnings:
                 print(f"  - {w}")
         print()
@@ -3028,7 +2999,6 @@ def _run_rejection_reason_check(args):
     import json
     import sys
 
-
     data = json.loads(args.entry_json)
     result = validate_rejection_reason_dict(data)
 
@@ -3128,7 +3098,6 @@ def _run_failed_candidate_batch_report_check(args):
             "passed": result.passed,
             "errors": result.errors,
             "warnings": result.warnings,
-
             "dry_lab_only": result.dry_lab_only,
         }
         print(json.dumps(out, indent=2))
@@ -3231,7 +3200,6 @@ def _run_reviewer_questionnaire_check(args):
     sys.exit(0 if result.passed else 1)
 
 
-
 def _run_domain_review_outcome_check(args):
     from openamp_foundry.evidence.domain_review_outcome import (
         validate_domain_review_outcome_dict,
@@ -3330,7 +3298,6 @@ def _run_batch_experiment_priority_ranker_check(args):
         print(f"INVALID: JSON parse error: {exc}", file=sys.stderr)
         sys.exit(1)
     result = validate_dict(data)
-
     if result.valid:
         print("VALID")
         for w in result.warnings:
@@ -3431,7 +3398,6 @@ def _run_expert_review_example_package_check(args):
     """CLI handler for expert-review-example-package-check."""
     import json, sys
     from openamp_foundry.evidence.expert_review_example_package import validate_dict
-
     data = json.load(open(args.input))
     issues = validate_dict(data)
     errors = [i for i in issues if not i.startswith("WARNING:")]
@@ -3531,7 +3497,6 @@ def _run_batch_priority_check(args: argparse.Namespace) -> int:
     """Validate a batch experiment priority entry."""
     import json as _json
     from openamp_foundry.evidence.batch_priority import validate_batch_priority_dict
-
 
     try:
         d = _json.loads(args.entry_json)
@@ -3633,7 +3598,6 @@ def _run_calibration_cycle_summary_check(args) -> int:
         try:
             data = json.loads(args.entry_json)
         except json.JSONDecodeError as exc:
-
             print(f"Error: invalid JSON: {exc}", file=__import__("sys").stderr)
             return 1
     else:
@@ -3734,7 +3698,6 @@ def _run_calibration_performance_check(args: argparse.Namespace) -> None:
         for e in result.errors:
             print(f"  ERROR: {e}")
         for w in result.warnings:
-
             print(f"  WARN:  {w}")
 
 def _run_calibration_readiness_check(args) -> int:
@@ -3835,7 +3798,6 @@ def _run_cross_batch_aggregator_check(args) -> int:
         validate_cross_batch_aggregator_dict,
     )
     if args.entry_json:
-
         try:
             data = json.loads(args.entry_json)
         except json.JSONDecodeError as exc:
@@ -3936,7 +3898,6 @@ def _run_external_sharing_clearance_check(args):
         print(f"  PEP ID: {result.pep_id}")
         print(f"  PRE ID: {result.pre_id}")
         print(f"  Purpose: {result.sharing_purpose}")
-
         if result.errors:
             print("  Errors:")
             for e in result.errors:
@@ -4037,7 +3998,6 @@ def _run_pilot_batch_safety_clearance_check(args) -> int:
         import dataclasses
         print(json.dumps(dataclasses.asdict(result), indent=2))
     else:
-
         status = "PASS" if result.passed else "FAIL"
         cleared = "CLEARED" if result.cleared_for_synthesis else "NOT-CLEARED"
         print(f"[{status}] Pilot Batch Safety Clearance: {result.psc_id} [{cleared}]")
@@ -4138,7 +4098,6 @@ def _run_pipeline_decision_audit_check(args: argparse.Namespace) -> int:
         for e in result.errors:
             print(f"  ERROR: {e}")
         for w in result.warnings:
-
             print(f"  WARN:  {w}")
         if result.passed:
             print("  Pipeline decision audit validated. Decision is traceable and reviewable.")
@@ -4239,7 +4198,6 @@ def _run_preprint_bundle_check(args: argparse.Namespace) -> int:
 def _run_recalibration_refusal_check(args) -> int:
     import json
     from openamp_foundry.evidence.recalibration_refusal_record import (
-
         validate_recalibration_refusal_dict,
     )
     if args.entry_json:
@@ -4340,7 +4298,6 @@ def _run_selection_rationale_check(args: argparse.Namespace) -> int:
         return 2
 
     if not isinstance(d, dict):
-
         print(_json.dumps({"status": "error", "error": "--entry-json must be a JSON object"}))
         return 2
 
