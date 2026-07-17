@@ -98,6 +98,7 @@ an existing empty directory is the explicit no-results state.
 | `openamp_foundry.features` | Physicochemical feature extraction. |
 | `openamp_foundry.scoring` | Activity-likeness, safety-risk, novelty, feasibility, ensemble, and related scorers. |
 | `openamp_foundry.selection` | Ranking, diversity selection, and panel construction guards. |
+
 | `openamp_foundry.evidence` | Evidence certificate generation and validation. |
 | `openamp_foundry.reports` | Human-readable and machine-readable reports. |
 | `openamp_foundry.benchmark` | Leakage checks, baseline comparisons, ablations, and benchmark scaffolding. |
@@ -197,6 +198,7 @@ Every extension point should answer:
 7. What failure mode is expected?
 
 Use [`ADAPTER_AUTHOR_GUIDE.md`](ADAPTER_AUTHOR_GUIDE.md) for external adapters.
+
 
 ## Adapter policy
 
