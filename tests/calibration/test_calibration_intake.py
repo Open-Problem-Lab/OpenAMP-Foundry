@@ -98,7 +98,6 @@ def empty_panel_csv(tmp_path) -> Path:
 
 
 @pytest.fixture
-
 def empty_results_dir(tmp_path) -> Path:
     d = tmp_path / "results"
     d.mkdir()
@@ -200,7 +199,6 @@ class TestLoadLabResults:
 
         from openamp_foundry.cli.commands.reports import _run_calibration_intake
 
-
         results = tmp_path / "results"
         results.mkdir()
         (results / "bad.json").write_text(json.dumps({"result_id": "BAD-001"}))
@@ -300,7 +298,6 @@ class TestPerCandidateJoin:
 
 
 class TestPerCandidateActuals:
-
     def test_active_mic_below_cutoff(self):
         from openamp_foundry.calibration.intake import _aggregate_per_candidate
 
@@ -401,7 +398,6 @@ class TestCohortMetricsGating:
         results.mkdir()
         panel = tmp_path / "panel.csv"
         rows = []
-
         for i in range(n_mic):
             cid = f"CAND-{i:03d}"
             rows.append(
@@ -502,7 +498,6 @@ class TestCohortMetricsGating:
                     result_qualitative="toxic" if i < 3 else "inactive",
                 ),
             )
-
         _write_panel_csv(panel, rows)
         report = build_calibration_intake_report(panel, results)
         metric = report["cohort_metrics"]["rich_selectivity_vs_high_hemolysis"]
@@ -603,7 +598,6 @@ class TestWriters:
 class TestDisclaimer:
     def test_disclaimer_present(self, tmp_path):
         results = tmp_path / "results"
-
         results.mkdir()
         panel = tmp_path / "panel.csv"
         _write_panel_csv(panel, [])
