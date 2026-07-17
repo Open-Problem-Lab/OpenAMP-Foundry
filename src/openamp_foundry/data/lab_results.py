@@ -98,7 +98,6 @@ def summarise_lab_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     All findings are raw experimental observations, not validated biological claims.
     """
     n = len(results)
-
     if n == 0:
         return {
             "n_results": 0,
