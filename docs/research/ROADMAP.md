@@ -98,6 +98,7 @@ result intake.
 - Added `PreRegistrationEntry` schema for machine-verifiable experiment pre-commitment
 - Records hypothesis, outcome metric, success threshold, and baseline comparators before results are observed
 - Prevents HARKing (Hypothesising After Results are Known)
+
 - Warns when random baseline is absent, hypothesis is underspecified, or statistical test is a placeholder
 - CLI: `openamp-foundry pre-registration-check`
 - 62 tests; all passing
@@ -198,6 +199,7 @@ levels map to `PROOF_LADDER.md`.
 `src/openamp_foundry/evidence/selection_rationale.py` with `SelectionRationaleEntry`
 dataclass (11 fields, dry_lab_only=True enforced), `SelectionRationaleResult`
 dataclass (5 fields), `VALID_EVIDENCE_LEVELS` (1–6), `MINIMUM_SAFETY_FLAGS` (1),
+
 `validate_selection_rationale()` (11 checks, 1 warning condition for low evidence
 levels), `validate_selection_rationale_dict()` (10 required fields guard).
 CLI: `openamp-foundry selection-rationale-check`. `make selection-rationale-check` target.
@@ -298,6 +300,7 @@ version, authors, year, license_identifier, reuse_class, url, bibtex_key,
 dry_lab_only), `CitationValidationResult` dataclass (6 fields,
 dry_lab_only=True), `VALID_CITATION_TYPES` (4: dataset, method, schema,
 software), `VALID_REUSE_CLASSES` (4: attribution_required, contact_required,
+
 open, restricted), `VALID_LICENSE_IDENTIFIERS` (5: Apache-2.0, CC-BY-4.0,
 CC-BY-NC-4.0, MIT, Proprietary), `validate_citation_entry()` (9 checks
 + 3 warning conditions), `validate_citation_dict()` (8 required fields guard).
@@ -398,6 +401,7 @@ Honest boundaries:
   guarantee that maintainers will actually meet those timelines.
 - The policy covers code vulnerabilities, secret leakage, dependency
   vulnerabilities, safety guardrail bypass, and dual-use risks. It does
+
   not cover theoretical vulnerabilities without a reproducible PoC,
   social engineering, or upstream dependency issues without fixes.
 
@@ -498,6 +502,7 @@ dataclass (10 fields), `COIValidationResult` dataclass (6 fields,
 dry_lab_only=True), `VALID_DISCLOSURE_TYPES` (4: contributor, external_advisor,
 maintainer, reviewer), `VALID_RELATIONSHIP_TYPES` (5: competitive, financial,
 institutional, none, personal), `VALID_REVIEW_STATUSES` (3: acknowledged,
+
 pending, resolved), `validate_coi_disclosure()` (10 checks: disclosure_id
 starts with COI-, valid disclosure_type, non-empty subject/related_artifact,
 valid relationship_type, description required unless none, YYYY-MM-DD date,
@@ -598,6 +603,7 @@ Changes:
   `ReleaseRequest` (17 fields), `ReleaseRequestValidationResult` (6 fields,
   dry_lab_only=True), `VALID_RELEASE_TYPES` (5), `VALID_SAFETY_STATUSES` (3),
   `VALID_INTENDED_USES` (4), `VALID_APPROVAL_STATUSES` (4),
+
   `VALID_REVIEW_CLASSES` (4), `validate_release_request()` (17 checks),
   `validate_request_dict()` (dict input with missing-fields guard).
 - `tests/governance/test_release_request.py` (J3) — 25 tests covering: valid
@@ -698,6 +704,7 @@ Changes:
 - `tests/test_test_count_regression.py` — baseline updated to 3491.
 
 Honest boundaries:
+
 - Decision log tracks governance decisions only — it does not measure
   biological activity, safety, or clinical value.
 - `dry_lab_only: true` is a const field on all dataclasses — the decision
@@ -799,6 +806,7 @@ CLI (`openamp-foundry release-gate-check`) with `--release-type`,
 
 `make release-gate-check` target. 18 tests. **3478 total.**
 
+
 **Starts Phase J (Governance and release maturity)** — releases now require
 all gates to pass before external release, preventing accidental bypass of
 required checks.
@@ -898,6 +906,7 @@ Honest boundaries:
   biological validity.
 - Dimension weights are heuristic and may need adjustment as adoption data
   accumulates. The current weights (integration 0.25, license 0.20, adapter
+
   0.20, schema 0.20, contribution 0.15) are the initial guess.
 - `dry_lab_only: true` is a const field on all dataclasses — the scorecard is
   a computational governance tool, not a biological assessment.
@@ -999,6 +1008,7 @@ reports.py.
 schema compatibility is automatically checked across all schema files, preventing
 drift between artifact versions.
 
+
 Changes:
 - `src/openamp_foundry/compatibility/__init__.py` (I8) — Empty package init.
 - `src/openamp_foundry/compatibility/artifact_compatibility.py` (I8) — Core module
@@ -1098,6 +1108,7 @@ their valid value sets (VALID_ADAPTER_MODES, VALID_OUTPUT_STATUSES,
 VALID_RANKING_EFFECTS, VALID_RELEASE_STATUSES) plus cross-field rules
 (baseline comparison required for ranking_effect=proposed/active, network
 call documentation required when makes_network_calls=True, deprecated mode
+
 must not have active/proposed ranking_effect, uncertainty must be 0.0-1.0
 or None, dry_lab_only must be True). Gated mode with ranking_effect=none
 produces a warning. `validate_adapter_dict()` for raw dict validation with
@@ -1198,6 +1209,7 @@ Changes:
   manifest dict, returns dict with checks, counts, all_passed, dry_lab_only).
 - `src/openamp_foundry/cli/main.py` (I5) — Registered `integration-check`
   subcommand with `--manifest-json`, `--format` flags. Added import and dispatch.
+
 - `src/openamp_foundry/cli/commands/reports.py` (I5) — Added
   `_run_integration_check()` CLI handler with JSON parsing, text and JSON
   output, integration check execution, and error handling.
@@ -1298,6 +1310,7 @@ Honest boundaries:
 `schemas/benchmark_card.schema.json` (Draft 2020-12, 15 required fields:
 benchmark_id, benchmark_name, version, date, metric, metric_value, baseline_name,
 baseline_value, delta, beats_baseline, dataset, dataset_size, scope, caveats,
+
 dry_lab_only). `$schema`, `$id`, `title`, `additionalProperties: false`.
 
 `src/openamp_foundry/benchmarks/` module with `BenchmarkCard` dataclass
@@ -1398,6 +1411,7 @@ Changes:
   `validate_candidate_manifest()`, `manifest_to_dict()`, `manifest_summary()`.
 - `src/openamp_foundry/cli/main.py` (I2) — Registered `candidate-manifest`
   subcommand with `--candidate-id`, `--sequence`, `--evidence-level`,
+
   `--scopes`, `--scores-json`, `--uncertainty`, `--source-modules`,
   `--validate`, `--format` flags. Added import and dispatch.
 - `src/openamp_foundry/cli/commands/reports.py` (I2) — Added
@@ -1497,6 +1511,7 @@ safety_release_decision, simulation_result — all at v1.0.0; 5 stable,
 tier filtering, `validate_version_format()` (regex MAJOR.MINOR.PATCH),
 `artifact_version_summary()` with total/by_tier/stable_count/experimental_count/
 dry_lab_only.
+
 
 CLI (`openamp-foundry artifact-version`) with `--list`, `--show <name>`,
 `--tier <stable|experimental|internal>`, `--format text|json`.
@@ -1598,6 +1613,7 @@ Changes:
 Honest boundaries:
 - The evidence packet aggregates computational sub-checks only. It does not
   measure biological activity, safety, or real-world performance.
+
 - `all_checks_passed=True` means all computational discipline checks passed,
   not that the simulation result is biologically meaningful.
 - The adapter gate uses failure signals provided by the caller; an adapter that
@@ -1698,6 +1714,7 @@ Changes:
 Honest boundaries:
 - Deprecation checks are based on registry status, not biological validity.
   A module may be "active" in the registry but still produce unreliable scores.
+
 - Blocking removes results from evidence packets but does not invalidate them
   as research data — blocked results may still be useful for internal analysis.
 - The enforcer does not evaluate whether a module's underlying science is sound;
@@ -1798,6 +1815,7 @@ Honest boundaries:
 - The provenance record attests that a simulation ran, not that the result
   is biologically meaningful.
 - `input_hash` covers the input sequence only; other input parameters
+
   (e.g., engine settings) are not hashed.
 - `result_hash` uses JSON serialisation with sort_keys=True; any future
   change to the serialisation format will change the hash for identical data.
@@ -1898,6 +1916,7 @@ Honest boundaries:
   manually kept in sync with the module registry.
 - `check_baseline_requirement()` caps evidence levels based on declared
   ceilings, not on independent biological validation.
+
 - A module that beats its cheapest baseline may still produce biologically
   meaningless results — beating a heuristic baseline is a necessary condition
   for evidence, not a sufficient one.
@@ -1998,6 +2017,7 @@ Changes:
   get_active_modules returns only active, registry_summary keys and totals,
   validate_registry detection of empty fields, invalid level, invalid
   status, duplicate ids, PROOF_LADDER_LEVELS completeness.
+
 - `docs/evidence/METRICS_CURRENT.md` — v0.5.89 H1 changelog. Test count: 3106.
 - `tests/test_test_count_regression.py` — baseline updated to 3106.
 
@@ -2098,6 +2118,7 @@ Changes:
   `_run_calibration_decision_checklist()` CLI handler with `--checklist-id`,
   `--date`, `--reviewer`, `--responses-json`, `--out-json`, `--out-md` flags.
 - `src/openamp_foundry/cli/main.py` — Registered `calibration-decision-checklist`
+
   subcommand with all argument flags and dispatch to handler.
 - `Makefile` — Added `calibration-decision-checklist` target with default example
   data writing to `/tmp/checklist_output.json` and `/tmp/checklist_output.md`.
@@ -2198,6 +2219,7 @@ Changes:
   (excluded flags → excluded, 2+ minor flags → low/excluded, 1 flag → acceptable,
   0 flags → high), `filter_results_for_calibration()` grouping results into
   included/included_with_caution/excluded with summary counts,
+
   `write_result_quality_json()` and `write_result_quality_markdown()` for output.
 - `schemas/result_quality_report.schema.json` (G7) — JSON Schema Draft 07 for
   per-candidate or aggregate result quality reports. Validates all 7 required
@@ -2298,6 +2320,7 @@ roles.
 
 Changes:
 - `src/openamp_foundry/active_learning/batch_rationale.py` (G5) —
+
   `build_batch_rationale_report()` generates a synthetic pool, runs
   `select_batch_2` with configurable weights, classifies each selected candidate
   into exploit/explore/diversity/combined roles based on which weight
@@ -2398,6 +2421,7 @@ Honest boundaries:
   use a single run per config.
 - The production selector optimizes for multiple objectives (activity, safety,
   diversity) that this recall-based benchmark does not fully measure.
+
 - A strategy that ranks highest on recall may not be the best choice for real
   candidate selection — domain-specific constraints, safety requirements, and
   material constraints matter.
@@ -2498,6 +2522,7 @@ Honest boundaries:
   biological accuracy, pipeline correctness, or data authenticity.
 - Missing content fields may reflect genuine data absence (e.g., unreviewed
   entries) rather than record-keeping errors.
+
 - The intake_report_id format check validates pattern, not referential
   integrity — a well-formed ID may reference a non-existent intake report.
 - Duplicate candidate_id detection flags structural duplicates; it cannot
