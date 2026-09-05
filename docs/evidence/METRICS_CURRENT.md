@@ -5,13 +5,29 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > **Purpose:** One authoritative table of current pipeline metrics. If any doc disagrees
 > with this file, this file wins. Updated whenever benchmark/benchmark config changes.
 >
-> **Last updated:** 2026-07-19 (control-failed outcome rollup boundary; benchmark values unchanged)
+> **Last updated:** 2026-09-06 (pilot pre-registration nested input boundary; benchmark values unchanged)
 
-> **Current verification note (2026-07-16):** Phase AA AA6 exposes the AARG-
+> **Current verification note (2026-09-06):** Phase AA AA6 exposes the AARG-
 > reproducibility aggregate through a repeatable CLI/make workflow, while Phase
-> AC AC3 exposes the ACDG- aggregate through the same surface. Both are dry-lab
-> review controls; neither establishes biological validation or benchmark
-> improvement.
+> AB AB5 exposes the ABAG- claim-integrity aggregate, Phase AC AC3 exposes the
+> ACDG- aggregate, Phase Y Y5 exposes the YAG- aggregate, and Phase Z Z5
+> exposes the ZAG- aggregate through the same surface. These are dry-lab review
+> controls; they neither authenticate reviewers, establish biological
+> validation, nor prove benchmark improvement.
+
+> **Phase AB claim-integrity note (2026-07-26):** The ABAG- aggregate is now
+> runnable through `phase-ab-claim-integrity-gate-check` and
+> `make phase-ab-claim-integrity-gate-check`. It fails closed unless CSD-,
+> RDR-, EGN-, and EHP- artifact types are present. This checks claim-review and
+> external-handoff assembly only; it does not authenticate reviewers, validate
+> science, establish biology, or authorize release.
+
+> **Phase Z accountability note (2026-07-23):** The ZAG- aggregate is now
+> runnable through `phase-z-accountability-gate-check` and
+> `make phase-z-accountability-gate-check`. It fails closed unless FBH-, BXR-,
+> ARG-, and CBF- artifact IDs are present. This checks review-surface
+> completeness only; it does not establish benchmark superiority, adapter
+> quality, biological validity, or release readiness.
 
 > **External-result integrity note (2026-07-16):** Calibration and lab-result
 > reports now retain schema-invalid JSON files as structured input errors. The
@@ -32,14 +48,196 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
 > IDs remain visible. The recalibration gate still rejects any control failure.
 > This prevents failed assays from influencing descriptive triage; it does not
 > validate assay quality or establish biological claims.
+
+> **Join-integrity note (2026-07-20):** Calibration intake retains result
+> candidate IDs that are absent from the submitted panel as orphan provenance,
+> but marks them as structured input-integrity issues and blocks clean intake
+> and recalibration. This prevents a broader result directory from silently
+> inflating a panel-specific cohort; it does not validate assay quality or
+> establish biological claims.
+
+> **Scientific-review readiness note (2026-07-20):** The Phase R SRG- gate is
+> now exposed through `scientific-review-readiness-check` and
+> `make scientific-review-readiness-check`. Only `ready_for_external_review`
+> exits successfully; the checked-in example is intentionally blocked because
+> no qualified wet-lab evidence exists. This is a documentation and review
+> control, not biological validation or release authorization.
+
+> **Certificate-identity note (2026-07-21):** Panels may now carry the
+> `computational_candidate_certificate_hash` already required by each lab
+> result. Calibration intake blocks mismatches and partial opted-in coverage;
+> legacy panels report identity as not available. This is an evidence-join
+> integrity control, not assay validation or biological proof.
+
+> **Batch-summary control-quality note (2026-07-21):** Lab-result summaries now
+> expose raw qualitative counts separately from counts restricted to assays with
+> both controls passing. Reports display both views with explicit labels, so
+> failed-control observations remain auditable without appearing to be usable
+> cohort evidence. This is a reporting integrity control, not assay validation
+> or biological proof.
+
+> **Panel-identity note (2026-07-22):** Calibration intake may now verify an
+> optional frozen `panel_id` carried by both the submitted panel and result
+> records. Multiple panel IDs, mismatches, and partial opted-in coverage block
+> clean intake; legacy panels report identity as not available. This prevents
+> cross-panel joins through reused candidate IDs, but does not validate assay
+> quality or establish biological proof.
+
+> **Raw-data provenance note (2026-07-22):** Lab-result and calibration reports
+> now expose `raw_data_sha256` coverage as `no_results`, `not_available`,
+> `partial_declaration`, or `declared_for_all`. A declared hash is not an
+> independently verified raw-file hash, and missing legacy declarations remain
+> accepted. This is audit-gap visibility, not assay validation or recalibration
+> authorization.
+
+> **External-review package identity note (2026-07-24):** A domain-review
+> outcome can now be checked against the exact frozen PilotEvidencePackage JSON
+> with `--package-json`. The command fails closed when `pep_sha256` is missing,
+> malformed, or mismatched. This proves package identity only; it does not
+> authenticate reviewers, establish reviewer independence, validate science, or
+> establish biological activity.
 >
 > Phase AC AC3 exposes the ACDG-
 > aggregate disconfirming-evidence gate as a repeatable CLI/make workflow. It
 > has 18 focused gate tests plus 2 CLI integration tests. Full pytest
-> collection succeeds at 12,332 tests; this artifact does not establish
+> collection succeeds at 12,440 tests; the live count is enforced by the
+> current-state alignment test. This artifact does not establish
 > biological validation or benchmark improvement.
 
+> **Pilot pre-registration lock note (2026-08-23):** The PRR- validator now
+> rejects unlocked records as invalid for experiment start. Unlocked drafts can
+> still be edited, but a valid pre-registration must freeze its selection
+> criteria and thresholds first. This is anti-cherry-picking infrastructure,
+> not assay validation or biological evidence.
+
+> **Pilot pre-registration CLI note (2026-09-02):** The PRR validator is now
+> exposed through `pilot-preregistration-check`, including fail-closed locked
+> state and freeze-digest checks. This makes the pre-experiment integrity
+> contract executable in the review loop; it does not authenticate signers,
+> validate assays, or establish biological evidence.
+
+> **Pilot pre-registration input-boundary note (2026-09-05):** The PRR CLI now
+> rejects malformed scalar, list, boolean, integer, and threshold field types
+> as structured input errors. This prevents permissive coercion and unhandled
+> exceptions; it does not authenticate signers or establish assay or biological
+> evidence.
+
+> **Pilot pre-registration nested-input note (2026-09-06):** The PRR CLI now
+> rejects non-string selection criteria and amendment-reason entries before
+> semantic validation. This keeps malformed nested data in the structured input
+> error path; it does not authenticate signers or establish assay or biological
+> evidence.
+
+> **Pilot freeze-integrity note (2026-08-24):** Locked PRR- records now require
+> a deterministic SHA-256 over their canonical content. This catches edits to
+> frozen selection criteria and thresholds; it does not authenticate the
+> signer, validate partner identity, or establish assay or biological evidence.
+
+> **Pilot lock-helper note (2026-09-01):** `lock_pilot_preregistration()` now
+> creates a non-mutating locked PRR- copy with the canonical freeze digest and
+> rejects re-locking. This reduces manual freeze mistakes; it does not
+> authenticate signers or establish assay or biological evidence.
+
+> **Canonical ERP generator note (2026-08-05):** `make generate-review-packet`
+> now exercises the V4 component-based ERP contract and emits a draft when no
+> artifact references are supplied. The legacy placeholder generator remains
+> available only through `--format legacy`; this changes packaging alignment,
+> not review readiness or biological evidence.
+
+> **Review-packet validation boundary (2026-08-07):** `generate_review_packet.py
+> --validate` now exits nonzero when the selected contract rejects the generated
+> packet, while retaining the invalid JSON for inspection. This prevents a
+> validation failure from looking like a successful handoff; it does not
+> authenticate artifacts, reviewers, science, or biological evidence.
+
+> **Canonical V4 schema note (2026-08-10):** The V4 component-based ERP now has
+> a portable `schemas/external_review_packet_v4.schema.json` contract, and
+> `--validate` checks both that schema and the Python validator. The schema
+> rejects missing or duplicate component types, cross-typed or prefix-only
+> artifact references, and references marked absent while carrying an ID. The
+> legacy `external_review_packet.schema.json` remains migration-only. This is
+> packaging interoperability evidence, not artifact authentication, reviewer
+> authentication, scientific validation, or biological proof.
+
+> **Canonical V4 consistency note (2026-08-12):** The portable ERP schema now
+> rejects contradictions between component presence flags, present counts,
+> missing-component lists, and packet status. This keeps schema-only consumers
+> aligned with the Python validator; it remains packaging integrity evidence,
+> not artifact authentication, reviewer authentication, scientific validation,
+> or biological proof.
+
+> **Canonical V4 timestamp note (2026-08-14):** The ERP Python validator and
+> portable schema now require `created_at` to use the canonical UTC-second form
+> `YYYY-MM-DDTHH:MM:SSZ`. The Python validator additionally rejects impossible
+> calendar dates. This protects packet provenance shape; it does not authenticate
+> artifact origin, reviewers, science, or biological evidence.
+
+> **Canonical V4 validator parity note (2026-08-18):** The ERP Python validator
+> now derives `packet_status` from component presence and rejects direct library
+> objects whose status disagrees with their component counts, matching the
+> portable schema. This is packaging integrity evidence only; it does not
+> authenticate artifacts, reviewers, science, or biological evidence.
+
+> **Phase Y accountability note (2026-07-25):** The YAG- baseline-vs-pipeline
+> aggregate is now runnable through `phase-y-accountability-gate-check` and
+> `make phase-y-accountability-gate-check`. It fails closed unless CBR-, FIA-,
+> SDA-, and PMC- artifact IDs are present. This checks review-surface
+> completeness only; it does not establish baseline superiority, biological
+> validity, or external pilot readiness.
+
+> **Synthetic-result recalibration boundary (2026-07-26):** Intake reports now
+> expose explicit `SYNTHETIC` labels by result ID. Such records remain usable
+> for demonstrations and audit, but the recalibration gate fails closed even
+> when cohort, control, join, and metric rules otherwise pass. Unclassified
+> records are not asserted to be real wet-lab evidence. This enforces the
+> existing synthetic-data policy; it does not create wet-lab evidence.
+
 ## Changelog
+
+### Phase AB AB5 — Claim-integrity workflow integration
+- Added `phase-ab-claim-integrity-gate-check` CLI command and
+  `make phase-ab-claim-integrity-gate-check` demo target.
+- The command rebuilds the ABAG- gate from CSD-, RDR-, EGN-, and EHP- component
+  types and returns nonzero for partial, malformed, or invalid-JSON inputs.
+- Added verified, missing-component, and invalid-JSON CLI integration coverage.
+- This is a dry-lab claim-review and handoff control, not reviewer
+  authentication, scientific validation, biological evidence, or release
+  authorization.
+
+### Phase Y Y5 — Baseline accountability workflow integration
+- Added `phase-y-accountability-gate-check` CLI command and
+  `make phase-y-accountability-gate-check` demo target.
+- The command rebuilds the YAG- gate from CBR-, FIA-, SDA-, and PMC- artifact
+  IDs and returns nonzero for partial or malformed inputs.
+- Added complete, incomplete, invalid-JSON, and help coverage.
+- This is a dry-lab review-control and artifact-assembly check, not evidence
+  that the pipeline beats cheap baselines or validates biology.
+
+### Phase Z Z5 — Per-family accountability gate workflow integration
+- Added `phase-z-accountability-gate-check` CLI command and
+  `make phase-z-accountability-gate-check` demo target.
+- The command rebuilds the ZAG- gate from FBH-, BXR-, ARG-, and CBF- artifact
+  IDs and returns nonzero for partial or not-established verdicts.
+- Added verified and missing-component CLI integration coverage.
+- This is a dry-lab review-control and artifact-assembly check, not evidence of
+  benchmark superiority, adapter quality, biological activity, safety, or
+  release readiness.
+
+### Phase R R4 — scientific-review readiness workflow integration
+- Added `scientific-review-readiness-check` CLI and Make target for the existing
+  SRG- validator.
+- The command exits `0` only for `ready_for_external_review`; conditional,
+  incomplete, safety-blocked, and malformed inputs exit `3`.
+- The checked-in Make example is intentionally blocked until qualified evidence
+  exists. This is a dry-lab review control, not biological proof.
+
+### External-result intake integrity — block orphan panel joins
+- Result candidate IDs absent from the submitted panel are retained in
+  `orphan_lab_result_candidate_ids` and `input_integrity_issues`.
+- Calibration intake reports the join as `blocked_on_orphan_results`; its CLI
+  exits `3`, and the recalibration gate refuses to proceed through the existing
+  input-integrity fail-closed path.
+- This is a join-completeness control, not assay validation or biological proof.
 
 ### External-result intake integrity — exclude control-failed observations from metrics
 - Calibration intake still reports every control failure and keeps the
@@ -48,6 +246,61 @@ Machine-readable snapshot: `outputs/metrics_snapshot.json` regenerated with `mak
   positive and negative controls both passed.
 - The recalibration gate remains fail-closed on any control failure.
 - This is an evidence-integrity control, not assay validation or biological proof.
+
+### External-result reporting integrity — separate raw and usable batch summaries
+- Batch-level qualitative counts now include an explicit
+  `by_usable_qualitative_result` view restricted to both-controls-passing
+  observations, while `by_qualitative_result` remains the raw audit view.
+- Markdown reports display both views and label failed-control observations as
+  audit-only. This closes the remaining summary-level ambiguity after
+  candidate-level rollups were separated.
+- This is a reporting integrity control, not assay validation or biological proof.
+
+### External-result reporting integrity — expose raw-data provenance coverage
+- Added `summarise_raw_data_provenance()` and included its result in both lab
+  result and calibration intake reports.
+- Reports distinguish no results, no declared hashes, partial declarations,
+  and declarations for all loaded results.
+- The report wording explicitly says that a declared hash is not independently
+  verified unless the raw file is separately available and checked.
+- This is provenance visibility only; legacy results remain accepted and no
+  recalibration or biological claim policy changed.
+
+### External-result reporting integrity — expose data origin in every report
+- Standalone `lab-result-report` JSON and Markdown outputs now include the
+  shared `data_origin` summary used by calibration intake.
+- Synthetic labels are visible by result ID, and unclassified records remain
+  explicitly unclassified rather than being inferred to be real wet-lab evidence.
+- This is audit visibility only; it does not validate assay contents, authenticate
+  the performing lab, establish biological evidence, or authorize recalibration.
+
+### External-result reporting integrity — validate the standalone report contract
+- Standalone `lab-result-report` JSON now validates against
+  `schemas/lab_result_report.schema.json` before handoff.
+- The schema covers summary, data-origin, raw-data provenance, control failures,
+  and input blockers. This is report-structure evidence only; it does not
+  validate assay contents, authenticate a lab, establish biology, or authorize
+  recalibration.
+
+### External-result reporting integrity — opt-in raw-file hash verification
+- Added `verify_raw_data_provenance()` and an optional `raw_data_file` field to
+  bind a declared SHA-256 to independently hashed bytes under a supplied
+  `--raw-data-dir`.
+- Missing files, path escape, and hash mismatch are explicit verification
+  issues. Lab-result reporting returns a blocked status; calibration intake
+  records an input-integrity blocker and remains ineligible for clean
+  recalibration.
+- Without `--raw-data-dir`, legacy declaration-only reporting remains
+  compatible. File identity is not assay validation, reviewer authentication,
+  biological proof, or release authorization.
+
+### External-result intake integrity — reject impossible assay dates
+- Lab-result loading now validates `assay_date` as a real, canonical
+  `YYYY-MM-DD` calendar date after schema validation.
+- Impossible or non-canonical dates are retained as structured invalid-file
+  errors and cannot enter sorted reports or calibration metrics.
+- This closes a temporal input-integrity gap; it does not validate assay
+  contents, reviewer identity, biological activity, or release readiness.
 
 
 ### External-result intake integrity — reject invalid result paths

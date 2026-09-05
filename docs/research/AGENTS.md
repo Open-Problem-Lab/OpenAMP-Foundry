@@ -12,7 +12,31 @@ work and preserve the external-truth bottleneck.
 - `50_LOOP_PLAN.md`: historical execution record only.
 - The current external-truth bottleneck includes fail-closed result-input
   completeness before any recalibration decision and explicit separation of
-  raw versus control-passing candidate outcomes.
+  raw versus control-passing candidate and batch outcomes. Orphan result
+  candidates that are absent from the submitted panel are also retained and
+  block clean intake. Opted-in panels also verify the frozen `panel_id` across
+  matched results; mismatches and partial coverage block clean intake.
+- Lab-result reports now expose raw assay-file hash coverage explicitly. A
+  missing or partial `raw_data_sha256` declaration remains non-blocking for
+  legacy intake, but is never described as independently verified provenance.
+- Supplying `--raw-data-dir` enables independent SHA-256 verification for
+  records that provide the relative `raw_data_file` field. Missing files, path
+  escape, and mismatches block clean calibration intake; matching file bytes do
+  not validate assay contents or biology.
+- Lab-result loading also rejects impossible or non-canonical `assay_date`
+  values as structured invalid-file errors before they reach reports or
+  calibration metrics.
+- The next executable review boundary is the Phase R SRG- workflow. Its default
+  example is intentionally blocked because qualified wet-lab evidence is not
+  present; do not treat the gate as validation.
+- Phase Z Z5 is complete: its ZAG- gate is executable through CLI and Make, but
+  it only checks artifact assembly and cannot establish benchmark superiority.
+- Phase Y Y5 is complete: its YAG- gate is executable through CLI and Make, but
+  it only checks artifact assembly and cannot establish that the pipeline beats
+  cheap baselines.
+- Phase AB AB5 is complete: its ABAG- gate is executable through CLI and Make,
+  but it only checks claim-integrity and handoff artifact assembly; it cannot
+  authenticate reviewers, validate science, or establish biology.
 
 ## Diagrams (Mermaid)
 

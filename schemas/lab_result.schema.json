@@ -27,6 +27,10 @@
       "type": "string",
       "description": "ID from the evidence certificate of the tested candidate"
     },
+    "panel_id": {
+      "type": "string",
+      "description": "Identifier of the frozen candidate panel or batch, when supplied"
+    },
     "assay_type": {
       "type": "string",
       "enum": [
@@ -91,6 +95,10 @@
     "raw_data_sha256": {
       "type": ["string", "null"],
       "description": "SHA-256 hash of the raw assay data file, if available"
+    },
+    "raw_data_file": {
+      "type": ["string", "null"],
+      "description": "Relative path to the raw assay data file under an explicitly supplied raw-data directory, if available"
     },
     "computational_candidate_certificate_hash": {
       "type": "string",

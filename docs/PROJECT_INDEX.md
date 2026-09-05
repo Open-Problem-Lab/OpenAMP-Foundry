@@ -293,17 +293,50 @@ Do not change a success definition after seeing results.
 
 Do not hide negative results merely because they weaken the story.
 
-## Current status — Phase AA6 / AC3 (2026-07-17)
+## Current status — Phase AB5 / Phase Z5 / Phase Y5 / Phase AA6 / Phase AC3 / Phase R4 workflow (2026-07-26)
 
-Phase AA AA6 and Phase AC AC3 are complete: the reproducibility and
-disconfirming-evidence aggregates are available through fail-closed CLI and
-make targets. These strengthen auditability only; they do not establish
-biological activity, safety, novelty, wet-lab validation, or release readiness.
+Phase AB AB5, Phase Y Y5, Phase Z Z5, Phase AA AA6, and Phase AC AC3 are complete: the claim-integrity, baseline,
+per-family
+accountability, reproducibility, and disconfirming-evidence aggregates are
+available through fail-closed CLI and make targets. These strengthen
+auditability only; they do not authenticate reviewers, establish biological
+activity, safety, novelty, wet-lab validation, or release readiness.
 The repository remains a dry-lab system.
 
 External-result intake also fails closed on missing/non-directory paths,
 schema-invalid files, duplicate lab-result IDs, and duplicate panel candidate
-IDs. These are evidence-integrity controls, not assay validation.
+IDs. Opted-in panels also fail closed on multiple, mismatched, or partially
+covered frozen `panel_id` values. These are evidence-integrity controls, not
+assay validation.
+
+Lab-result reports also expose declared `raw_data_sha256` coverage as
+`no_results`, `not_available`, `partial_declaration`, or `declared_for_all`.
+This is provenance visibility only; declared hashes are not independently
+verified raw-file hashes.
+
+Intake reports also classify explicit `SYNTHETIC` labels by result ID. Synthetic
+records remain available for demonstrations and audit, but the recalibration
+gate fails closed when any synthetic-labeled result is present. Unclassified
+records are not asserted to be real wet-lab evidence.
+
+The Phase Z ZAG- command returns success only when FBH-, BXR-, ARG-, and CBF-
+artifact IDs are all present. This is per-family accountability assembly, not
+benchmark superiority or adapter ranking authority.
+
+The Phase Y YAG- command returns success only when CBR-, FIA-, SDA-, and PMC-
+artifact IDs are all present. This is baseline-accountability assembly, not
+evidence that the pipeline beats cheap baselines or biological validation.
+
+The Phase AB ABAG- command returns success only when CSD-, RDR-, EGN-, and EHP-
+artifact types are all present. This is claim-integrity and external-handoff
+assembly, not reviewer authentication, scientific validation, or biological
+evidence.
+
+The Phase R scientific-review readiness gate is available through
+`scientific-review-readiness-check` and its Make target. Only
+`ready_for_external_review` exits successfully; the checked-in example remains
+blocked because no qualified wet-lab evidence exists. This is a review-control
+workflow, not biological validation or release authorization.
 
 For current milestones, measured evidence, and the next bounded work items,
 use [`docs/research/ROADMAP.md`](research/ROADMAP.md),

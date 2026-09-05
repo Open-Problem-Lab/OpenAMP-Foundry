@@ -2,7 +2,7 @@
 
 PYTHON := $(shell [ -f .venv/bin/python ] && echo .venv/bin/python || echo python3)
 
-.PHONY: phase-aa-reproducibility-gate-check
+.PHONY: phase-aa-reproducibility-gate-check phase-ab-claim-integrity-gate-check phase-z-accountability-gate-check scientific-review-readiness-check
 PYTEST  := $(shell [ -f .venv/bin/pytest ] && echo .venv/bin/pytest || echo pytest)
 RUFF    := $(shell [ -f .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
 
@@ -81,7 +81,7 @@ help:
 	@echo "  make generate-synthetic-lab-results  Generate synthetic lab results for calibration testing"
 	@echo "  make calibration-audit-example  Run calibration pipeline consistency audit on synthetic example"
 	@echo "  make calibration-audit          Run calibration pipeline consistency audit (INTAKE=[path] GATE=[path] ...)"
-	@echo "  make test               Run full test suite (2937 passing tests, >=80% coverage)"
+	@echo "  make test               Run the full test suite (coverage target: >=80%)"
 	@echo "  make coverage           Test suite with per-module coverage report"
 	@echo "  make lint               Ruff lint check on src/ tests/ scripts/"
 	@echo "  make typecheck          mypy type check on src/"
@@ -645,11 +645,11 @@ lab-batch-pack:
 
 generate-review-packet:
 	PYTHONPATH=src $(PYTHON) scripts/generate_review_packet.py \
+		--format v4 \
+		--erp-id ERP-DEMO-$(shell date -u +%Y%m%d) \
+		--batch-id BATCH-DEMO-$(shell date -u +%Y%m%d) \
 		--pipeline-version v0.5.73 \
-		--git-sha $$(git rev-parse HEAD) \
-		--candidate-count 36 \
-		--proof-ladder-level 2 \
-		--out outputs/review_packet_skeleton.json \
+		--out outputs/review_packet_v4.json \
 		--validate
 
 failed-candidate-report:
@@ -962,6 +962,22 @@ phase-ac-disconfirming-gate-check:
 phase-aa-reproducibility-gate-check:
 	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli phase-aa-reproducibility-gate-check --entry-json '{"aarg_id":"AARG-001","pipeline_version":"demo","rmc_id":"RMC-001","dcr_id":"DCR-001","cfp_id":"CFP-001","sbw_id":"SBW-001","created_at":"2026-07-16"}' --format text
 	@echo "Phase AA reproducibility gate check complete."
+
+phase-ab-claim-integrity-gate-check:
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli phase-ab-claim-integrity-gate-check --entry-json '{"abag_id":"ABAG-001","pipeline_version":"demo","components_present":["CSD","RDR","EGN","EHP"],"limitations":["Dry-lab claim-integrity review control; not scientific validation."],"created_at":"2026-07-26"}' --format text
+	@echo "Phase AB claim-integrity gate check complete."
+
+phase-y-accountability-gate-check:
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli phase-y-accountability-gate-check --entry-json '{"yag_id":"YAG-001","pipeline_version":"demo","cbr_artifact_id":"CBR-001","fia_artifact_id":"FIA-001","sda_artifact_id":"SDA-001","pmc_artifact_id":"PMC-001","limitations":["Dry-lab baseline accountability only; not biological validation."],"created_at":"2026-07-25"}' --format text
+	@echo "Phase Y accountability gate check complete."
+
+phase-z-accountability-gate-check:
+	PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli phase-z-accountability-gate-check --entry-json '{"zag_id":"ZAG-001","pipeline_version":"demo","fbh_id":"FBH-001","bxr_id":"BXR-001","arg_id":"ARG-001","cbf_id":"CBF-001","created_at":"2026-07-23"}' --format text
+	@echo "Phase Z accountability gate check complete."
+
+scientific-review-readiness-check:
+	@set +e; PYTHONPATH=src $(PYTHON) -m openamp_foundry.cli scientific-review-readiness-check --entry-json '{"srg_id":"SRG-DEMO-001","candidate_family_id":"FAMILY-DEMO-001","cfc_id":"CFC-DEMO-001","fnr_id":"FNR-DEMO-001","atr_id":"ATR-DEMO-001","pqg_id":"PQG-DEMO-001","readiness_verdict":"not_ready","safety_flags":["no_flags"],"failed_gates":["No qualified wet-lab result is available"],"review_scope":"internal_only","n_confirmed_hits":0,"n_total_candidates":1,"limitations":"Dry-lab readiness example; not biological proof."}' --format text; status=$$?; test $$status -eq 3
+	@echo "Scientific review readiness is blocked as expected until qualified evidence exists."
 
 pre-registration-check:
 	openamp-foundry pre-registration-check --entry-json '{"registration_id":"PRE-001","batch_id":"BATCH-001","pipeline_version":"0.9.4","registration_date":"2026-07-10","primary_hypothesis":"Candidates selected by OpenAMP will show MIC values at least 2-fold lower than random length/charge-matched peptides in broth microdilution against E. coli ATCC 25922.","primary_outcome_metric":"mic_value","success_threshold":4.0,"baseline_comparators":["random_selection","charge_matched_random"],"candidate_ids":["AMP-001","AMP-002","AMP-003"],"assay_type":"mic_assay","statistical_test":"Mann-Whitney U test, two-sided, alpha=0.05","registered_by":"test@example.com","dry_lab_only":true}' --format text

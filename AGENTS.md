@@ -53,8 +53,30 @@ If these docs conflict, safety and claim discipline win.
   `phase-aa-reproducibility-gate-check` and
   `make phase-aa-reproducibility-gate-check`; partial or not-established
   verdicts exit nonzero and do not certify a pipeline run.
+- Phase AB exposes the ABAG- claim-integrity aggregate through
+  `phase-ab-claim-integrity-gate-check` and
+  `make phase-ab-claim-integrity-gate-check`; partial or not-established
+  verdicts exit nonzero and do not authenticate reviewers, validate science,
+  or establish biological evidence.
+- Phase Z exposes the ZAG- per-family accountability aggregate through
+  `phase-z-accountability-gate-check` and
+  `make phase-z-accountability-gate-check`; partial or not-established
+  verdicts exit nonzero and do not establish benchmark superiority or
+  adapter ranking authority.
+- Phase Y exposes the YAG- baseline-vs-pipeline accountability aggregate
+  through `phase-y-accountability-gate-check` and
+  `make phase-y-accountability-gate-check`; only a complete CBR/FIA/SDA/PMC
+  artifact set returns success. This is a dry-lab comparison-review control,
+  not evidence that the pipeline beats cheap baselines or validates biology.
 - Use `python3 -m pytest --collect-only -q --no-header` to verify the full test
   graph before relying on targeted evidence.
+- The current pytest collection count recorded in
+  `docs/evidence/METRICS_CURRENT.md` is checked by
+  `tests/test_current_state_alignment.py`; intentional test additions or
+  removals must update that source-of-truth note.
+- The toy end-to-end smoke path in `tests/test_pipeline_dry_run_e2e.py` must
+  consume the current public artifact builders and dataclasses. It is an API
+  compatibility check only and does not create biological evidence.
 - The Phase E ERP example and validator retain an explicitly legacy compatibility
   bridge; new packet work must use the component-based V4 ERP API.
 - Lab-result directory loading remains warning-compatible for legacy callers, but
@@ -65,12 +87,54 @@ If these docs conflict, safety and claim discipline win.
 - Calibration and reporting workflows also retain duplicate result IDs and
   duplicate panel candidate IDs as structured input-integrity issues; those
   inputs are not clean evidence and block the recalibration gate.
+- Calibration intake also retains orphan result candidate IDs when a result
+  references a candidate absent from the submitted panel; orphan results are
+  not joined to predictions and block clean intake/recalibration.
 - Candidate outcome rollups retain raw failed-control observations and IDs for
   audit, but interpretable outcome flags and numeric counts use only
   control-passing observations; failed controls still block recalibration.
+- Lab-result batch summaries retain raw qualitative counts for audit, but expose
+  a separate `by_usable_qualitative_result` view restricted to control-passing
+  observations; reports label both views explicitly.
 - Calibration intake retains control-failed assay observations for audit, but
   excludes them from per-assay actual predicates and cohort metrics; failed
   controls remain a recalibration-gate blocker.
+- Calibration intake can verify each result's required computational-certificate
+  hash against an optional panel column; mismatches or partial opted-in coverage
+  are structured input-integrity blockers. Legacy panels without that column are
+  reported as certificate identity not available, not silently verified.
+- Calibration intake can also verify an optional frozen `panel_id` against each
+  matched result. Multiple panel IDs, mismatches, or partial opted-in coverage
+  are structured input-integrity blockers; legacy panels report panel identity
+  not available, not silently verified.
+- Lab-result reports expose raw assay-file hash coverage as
+  `no_results`, `not_available`, `partial_declaration`, or
+  `declared_for_all`. A declared `raw_data_sha256` is provenance only, not an
+  independently verified file hash; this status does not change legacy intake
+  acceptance or recalibration policy.
+- Supplying `--raw-data-dir` to `lab-result-report` or `calibration-intake`
+  enables independent SHA-256 verification for records that provide the
+  relative `raw_data_file` field. Missing files, path escape, or mismatches are
+  structured verification blockers; matching bytes do not validate assay
+  contents, reviewer identity, biology, or release readiness.
+- Lab-result `assay_date` values are checked as real, canonical `YYYY-MM-DD`
+  calendar dates after schema validation. Impossible or non-canonical dates are
+  retained as structured invalid-file errors and cannot enter reports or
+  metrics; this is temporal input integrity, not assay validation.
+- Intake reports classify explicit `SYNTHETIC` labels by result ID. Those
+  records remain usable for demonstrations and audit, but the recalibration
+  gate fails closed when any synthetic-labeled result is present. Unclassified
+  records are not silently asserted to be real wet-lab evidence.
+- The Phase R scientific-review readiness gate is available through
+  `scientific-review-readiness-check` and
+  `make scientific-review-readiness-check`; only a
+  `ready_for_external_review` verdict exits successfully. This is a dry-lab
+  documentation gate, not biological validation or release authorization.
+- Domain-review outcomes remain backward-compatible when validated by ID alone,
+  but `domain-review-outcome-check --package-json <frozen-pep.json>` now fails
+  closed unless the outcome carries a matching `pep_sha256`. This binds a
+  review record to the exact frozen package JSON; it does not authenticate the
+  reviewer or establish scientific correctness.
 
 ## The agent role
 
@@ -132,6 +196,7 @@ A rule that nothing can catch you breaking is a wish, not a contract. Wherever t
 | Ranking gates are respected | `make gate-check` · `make bench-gate` |
 | Outputs are reproducible | `make cert-quality-check` · `make full-reproducibility-report` |
 | Docs link where they claim | `make doc-links-check` |
+| Bare documentation paths remain current | `src/openamp_foundry/checks/stale_doc_detector.py` and its focused tests |
 | Deprecated benchmarks stay dead | `make bench-deprecation-check` |
 | Code is green and typed | `make ci` (lint + test) · `make coverage` · `make typecheck` |
 | Fast pre-PR bundle | `make agent-check` then `make doctor` |

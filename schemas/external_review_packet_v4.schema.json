@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openamp-foundry.org/schemas/external_review_packet_v4/1.0.0",
+  "title": "OpenAMP External Review Packet V4",
+  "description": "Canonical component-based dry-lab external review packet. Component presence is packaging evidence only; it does not authenticate artifacts, reviewers, science, or biological validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "erp_id",
+    "batch_id",
+    "pipeline_version",
+    "components",
+    "n_components_required",
+    "n_components_present",
+    "missing_component_types",
+    "packet_status",
+    "dry_lab_only",
+    "limitations",
+    "created_at"
+  ],
+  "properties": {
+    "erp_id": {
+      "type": "string",
+      "pattern": "^ERP-.+"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pipeline_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "components": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/component"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {"component_type": {"const": "BRC"}},
+            "required": ["component_type"]
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {"component_type": {"const": "ECI"}},
+            "required": ["component_type"]
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {"component_type": {"const": "FET"}},
+            "required": ["component_type"]
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {"component_type": {"const": "PTR"}},
+            "required": ["component_type"]
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {"component_type": {"const": "SRS"}},
+            "required": ["component_type"]
+          }
+        }
+      ]
+    },
+    "n_components_required": {
+      "const": 5
+    },
+    "n_components_present": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "missing_component_types": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["BRC", "ECI", "FET", "PTR", "SRS"]
+      }
+    },
+    "packet_status": {
+      "enum": ["ready", "incomplete", "draft"]
+    },
+    "dry_lab_only": {
+      "const": true
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+      "description": "Canonical UTC timestamp in YYYY-MM-DDTHH:MM:SSZ form; calendar validity is enforced by the Python validator."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 0}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {"present": {"const": true}},
+                "required": ["present"]
+              }
+            }
+          },
+          "packet_status": {"const": "draft"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 1}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {"present": {"const": true}},
+              "required": ["present"]
+            },
+            "minContains": 1,
+            "maxContains": 1
+          },
+          "packet_status": {"const": "incomplete"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 2}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {"present": {"const": true}},
+              "required": ["present"]
+            },
+            "minContains": 2,
+            "maxContains": 2
+          },
+          "packet_status": {"const": "incomplete"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 3}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {"present": {"const": true}},
+              "required": ["present"]
+            },
+            "minContains": 3,
+            "maxContains": 3
+          },
+          "packet_status": {"const": "incomplete"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 4}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {"present": {"const": true}},
+              "required": ["present"]
+            },
+            "minContains": 4,
+            "maxContains": 4
+          },
+          "packet_status": {"const": "incomplete"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"n_components_present": {"const": 5}}
+      },
+      "then": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {"present": {"const": true}},
+              "required": ["present"]
+            },
+            "minContains": 5,
+            "maxContains": 5
+          },
+          "packet_status": {"const": "ready"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "component_type": {"const": "BRC"},
+                "present": {"const": true}
+              },
+              "required": ["component_type", "present"]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "missing_component_types": {
+            "not": {"contains": {"const": "BRC"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "missing_component_types": {
+            "contains": {"const": "BRC"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "component_type": {"const": "ECI"},
+                "present": {"const": true}
+              },
+              "required": ["component_type", "present"]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "missing_component_types": {
+            "not": {"contains": {"const": "ECI"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "missing_component_types": {
+            "contains": {"const": "ECI"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "component_type": {"const": "FET"},
+                "present": {"const": true}
+              },
+              "required": ["component_type", "present"]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "missing_component_types": {
+            "not": {"contains": {"const": "FET"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "missing_component_types": {
+            "contains": {"const": "FET"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "component_type": {"const": "PTR"},
+                "present": {"const": true}
+              },
+              "required": ["component_type", "present"]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "missing_component_types": {
+            "not": {"contains": {"const": "PTR"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "missing_component_types": {
+            "contains": {"const": "PTR"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "components": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "component_type": {"const": "SRS"},
+                "present": {"const": true}
+              },
+              "required": ["component_type", "present"]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "missing_component_types": {
+            "not": {"contains": {"const": "SRS"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "missing_component_types": {
+            "contains": {"const": "SRS"}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_type", "artifact_id", "present"],
+      "properties": {
+        "component_type": {
+          "enum": ["BRC", "ECI", "FET", "PTR", "SRS"]
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "BRC"},
+              "present": {"const": true}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"pattern": "^BRC-.+"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "BRC"},
+              "present": {"const": false}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"const": ""}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "ECI"},
+              "present": {"const": true}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"pattern": "^ECI-.+"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "ECI"},
+              "present": {"const": false}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"const": ""}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "FET"},
+              "present": {"const": true}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"pattern": "^FET-.+"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "FET"},
+              "present": {"const": false}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"const": ""}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "PTR"},
+              "present": {"const": true}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"pattern": "^PTR-.+"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "PTR"},
+              "present": {"const": false}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"const": ""}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "SRS"},
+              "present": {"const": true}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"pattern": "^SRS-.+"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "component_type": {"const": "SRS"},
+              "present": {"const": false}
+            },
+            "required": ["component_type", "present"]
+          },
+          "then": {
+            "properties": {"artifact_id": {"const": ""}}
+          }
+        }
+      ]
+    }
+  }
+}

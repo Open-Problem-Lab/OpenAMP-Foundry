@@ -2,13 +2,15 @@
 
 ## Overview
 
-Tests protect schema validation, ordering, summaries, and retained invalid-file
-provenance for result ingestion.
+Tests protect schema and canonical calendar-date validation, ordering, summaries,
+  retained invalid-file provenance, and explicit synthetic-origin summaries for
+  result ingestion.
 
 ## Key Components
 
 - `test_lab_results.py`: loader, summary, and missing/non-directory path
-  behavior, including the boundary between raw and control-passing outcomes.
+  behavior, including the boundary between raw and control-passing outcomes at
+  both candidate and batch summary levels.
 
 ## Diagrams (Mermaid)
 

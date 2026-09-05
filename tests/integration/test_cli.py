@@ -1,11 +1,16 @@
 """CLI integration tests."""
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import subprocess
+import sys
 
 import pytest
 
 from openamp_foundry.cli import main
+from openamp_foundry.utils.hashing import stable_json_hash
 
 
 PANEL_CSV_HEADER = (
@@ -21,6 +26,62 @@ def _write_panel(tmp_path, two_rows: bool = True):
     rows_content = (PANEL_CSV_ROW1 + PANEL_CSV_ROW2) if two_rows else PANEL_CSV_ROW1
     panel.write_text(PANEL_CSV_HEADER + rows_content, encoding="utf-8")
     return str(panel)
+
+
+def test_domain_review_outcome_can_verify_frozen_package(tmp_path):
+    package = {
+        "pep_id": "PEP-CLI-001",
+        "pipeline_version": "v0.10.13",
+        "candidate_ids": ["TOY-001"],
+        "dry_lab_only": True,
+    }
+    package_path = tmp_path / "package.json"
+    package_path.write_text(json.dumps(package), encoding="utf-8")
+    entry = {
+        "dro_id": "DRO-CLI-001",
+        "pipeline_version": "v0.10.13",
+        "pep_id": "PEP-CLI-001",
+        "rvq_id": "RVQ-CLI-001",
+        "reviewer_token": "REV-CLI",
+        "review_domain": "antimicrobial_activity",
+        "review_date": "2026-07-10",
+        "outcome_verdict": "approve",
+        "outcome_confidence": "high",
+        "outcome_rationale": "Reviewed the frozen package.",
+        "pep_sha256": stable_json_hash(package),
+    }
+    command = [
+        sys.executable,
+        "-m",
+        "openamp_foundry.cli",
+        "domain-review-outcome-check",
+        "--entry-json",
+        json.dumps(entry),
+        "--package-json",
+        str(package_path),
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": "src"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["package_hash_status"] == "verified"
+
+    entry["pep_sha256"] = "a" * 64
+    mismatch_command = command.copy()
+    mismatch_command[mismatch_command.index("--entry-json") + 1] = json.dumps(entry)
+    mismatch = subprocess.run(
+        mismatch_command,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": "src"},
+    )
+    assert mismatch.returncode == 1
+    assert "does not match" in mismatch.stdout
 
 
 def test_rank_command_success(tmp_path):
@@ -216,6 +277,199 @@ def test_phase_aa_reproducibility_gate_check_fails_when_components_are_missing()
         "phase-aa-reproducibility-gate-check",
         "--entry-json", json.dumps(payload),
     ]) == 3
+
+
+def test_phase_ab_claim_integrity_gate_check_reports_verified(capsys):
+    ret = main([
+        "phase-ab-claim-integrity-gate-check",
+        "--entry-json",
+        json.dumps({
+            "abag_id": "ABAG-CLI-001",
+            "pipeline_version": "v1.0",
+            "components_present": ["CSD", "RDR", "EGN", "EHP"],
+            "limitations": ["Dry-lab claim-integrity review control."],
+            "created_at": "2026-07-26",
+        }),
+        "--format", "json",
+    ])
+    assert ret == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["verdict"] == "claim_integrity_verified"
+    assert result["n_components_present"] == 4
+    assert result["dry_lab_only"] is True
+    assert result["passed"] is True
+
+
+def test_phase_ab_claim_integrity_gate_check_fails_when_components_are_missing():
+    payload = {
+        "abag_id": "ABAG-CLI-002",
+        "pipeline_version": "v1.0",
+        "components_present": ["CSD", "RDR"],
+        "limitations": ["Incomplete dry-lab claim-integrity record."],
+        "created_at": "2026-07-26",
+    }
+    assert main([
+        "phase-ab-claim-integrity-gate-check",
+        "--entry-json", json.dumps(payload),
+    ]) == 3
+
+
+def test_phase_ab_claim_integrity_gate_check_fails_closed_on_invalid_json(capsys):
+    assert main([
+        "phase-ab-claim-integrity-gate-check",
+        "--entry-json", "{not-json",
+        "--format", "json",
+    ]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["passed"] is False
+    assert "invalid ABAG input" in result["violations"][0]
+
+
+def test_scientific_review_readiness_check_reports_ready(capsys):
+    ret = main([
+        "scientific-review-readiness-check",
+        "--entry-json",
+        json.dumps({
+            "srg_id": "SRG-CLI-001",
+            "candidate_family_id": "FAMILY-CLI-001",
+            "cfc_id": "CFC-CLI-001",
+            "fnr_id": "FNR-CLI-001",
+            "atr_id": "ATR-CLI-001",
+            "pqg_id": "PQG-CLI-001",
+            "readiness_verdict": "ready_for_external_review",
+            "safety_flags": ["no_flags"],
+            "failed_gates": [],
+            "review_scope": "trusted_partner",
+            "n_confirmed_hits": 1,
+            "n_total_candidates": 2,
+            "limitations": "Structural readiness record; not biological proof.",
+        }),
+        "--format", "json",
+    ])
+    assert ret == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["readiness_verdict"] == "ready_for_external_review"
+    assert result["passed"] is True
+    assert result["dry_lab_only"] is True
+
+
+def test_scientific_review_readiness_check_fails_closed_without_confirmed_hit():
+    payload = {
+        "srg_id": "SRG-CLI-002",
+        "candidate_family_id": "FAMILY-CLI-002",
+        "cfc_id": "CFC-CLI-002",
+        "fnr_id": "FNR-CLI-002",
+        "atr_id": "ATR-CLI-002",
+        "pqg_id": "PQG-CLI-002",
+        "readiness_verdict": "not_ready",
+        "safety_flags": ["no_flags"],
+        "failed_gates": ["PQG incomplete"],
+        "review_scope": "internal_only",
+        "n_confirmed_hits": 0,
+        "n_total_candidates": 2,
+        "limitations": "No qualified wet-lab result is available.",
+    }
+    assert main([
+        "scientific-review-readiness-check",
+        "--entry-json", json.dumps(payload),
+    ]) == 3
+
+
+def test_phase_z_accountability_gate_check_reports_verified(capsys):
+    ret = main([
+        "phase-z-accountability-gate-check",
+        "--entry-json",
+        json.dumps({
+            "zag_id": "ZAG-CLI-001",
+            "pipeline_version": "v1.0",
+            "fbh_id": "FBH-CLI-001",
+            "bxr_id": "BXR-CLI-001",
+            "arg_id": "ARG-CLI-001",
+            "cbf_id": "CBF-CLI-001",
+            "created_at": "2026-07-23",
+        }),
+        "--format", "json",
+    ])
+    assert ret == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["verdict"] == "accountability_verified"
+    assert result["n_components_present"] == 4
+    assert result["dry_lab_only"] is True
+
+
+def test_phase_y_accountability_gate_check_reports_verified(capsys):
+    ret = main([
+        "phase-y-accountability-gate-check",
+        "--entry-json",
+        json.dumps({
+            "yag_id": "YAG-CLI-001",
+            "pipeline_version": "v1.0",
+            "cbr_artifact_id": "CBR-CLI-001",
+            "fia_artifact_id": "FIA-CLI-001",
+            "sda_artifact_id": "SDA-CLI-001",
+            "pmc_artifact_id": "PMC-CLI-001",
+            "limitations": ["Dry-lab baseline accountability only."],
+            "created_at": "2026-07-25",
+        }),
+        "--format", "json",
+    ])
+    assert ret == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["yag_verdict"] == "accountability_verified"
+    assert result["n_components_present"] == 4
+    assert result["dry_lab_only"] is True
+    assert result["passed"] is True
+
+
+def test_phase_y_accountability_gate_check_fails_when_components_are_missing():
+    payload = {
+        "yag_id": "YAG-CLI-002",
+        "pipeline_version": "v1.0",
+        "cbr_artifact_id": "CBR-CLI-002",
+        "fia_artifact_id": "FIA-CLI-002",
+        "limitations": ["Incomplete dry-lab accountability record."],
+        "created_at": "2026-07-25",
+    }
+    assert main([
+        "phase-y-accountability-gate-check",
+        "--entry-json", json.dumps(payload),
+    ]) == 3
+
+
+def test_phase_y_accountability_gate_check_fails_closed_on_invalid_json(capsys):
+    assert main([
+        "phase-y-accountability-gate-check",
+        "--entry-json", "{not-json",
+        "--format", "json",
+    ]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["passed"] is False
+    assert "invalid YAG input" in result["violations"][0]
+
+
+def test_phase_z_accountability_gate_check_fails_when_components_are_missing():
+    payload = {
+        "zag_id": "ZAG-CLI-002",
+        "pipeline_version": "v1.0",
+        "fbh_id": "FBH-CLI-002",
+        "bxr_id": "BXR-CLI-002",
+        "created_at": "2026-07-23",
+    }
+    assert main([
+        "phase-z-accountability-gate-check",
+        "--entry-json", json.dumps(payload),
+    ]) == 3
+
+
+def test_scientific_review_readiness_check_fails_closed_on_invalid_json(capsys):
+    assert main([
+        "scientific-review-readiness-check",
+        "--entry-json", "{not-json",
+        "--format", "json",
+    ]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["passed"] is False
+    assert "invalid JSON input" in result["violations"][0]
 
 
 def test_presynth_qc_command_returns_zero(tmp_path):
@@ -739,12 +993,61 @@ def test_lab_result_report_creates_outputs(tmp_path, capsys):
     assert captured["n_control_failures"] == 1
     report = json.loads(out_json.read_text(encoding="utf-8"))
     assert report["summary"]["n_results"] == 2
+    assert report["summary"]["by_qualitative_result"]["toxic"] == 1
+    assert "toxic" not in report["summary"]["by_usable_qualitative_result"]
     assert report["n_candidates"] == 1
     assert len(report["control_failures"]) == 1
+    assert report["data_origin"]["status"] == "unclassified"
+    assert report["data_origin"]["n_synthetic_results"] == 0
     text = out_md.read_text(encoding="utf-8")
     assert "Wet-Lab Result Report" in text
+    assert "Usable Qualitative Outcome Counts" in text
+    assert "Raw Qualitative Observations (Audit Only)" in text
+    assert "Data-origin status: unclassified" in text
     assert "CAND-001" in text
     assert "RES-002" in text
+
+
+def test_lab_result_report_surfaces_synthetic_origin(tmp_path):
+    results_dir = tmp_path / "lab_results"
+    results_dir.mkdir()
+    result = {
+        "result_id": "RES-SYNTHETIC-001",
+        "candidate_id": "SYNTHETIC-CAND-001",
+        "assay_type": "MIC",
+        "organism_or_cell_line": "SYNTHETIC TEST - E. coli",
+        "result_value": 8.0,
+        "result_unit": "µg/mL",
+        "result_qualitative": "active",
+        "positive_control_passed": True,
+        "negative_control_passed": True,
+        "assay_date": "2026-07-01",
+        "replicate_count": 1,
+        "performed_by_lab": "SYNTHETIC TEST - fixture",
+        "raw_data_sha256": None,
+        "computational_candidate_certificate_hash": "abc123def456",
+        "notes": "SYNTHETIC TEST DATA - not a real assay.",
+        "disclaimer": (
+            "SYNTHETIC TEST. This is not a real experimental result on a "
+            "computationally nominated candidate and does not constitute a "
+            "drug or clinical claim."
+        ),
+    }
+    (results_dir / "synthetic.json").write_text(json.dumps(result), encoding="utf-8")
+
+    from openamp_foundry.reports.lab_result_report import (
+        build_lab_result_report,
+        write_lab_result_markdown,
+    )
+
+    report = build_lab_result_report(results_dir)
+    assert report["data_origin"]["status"] == "synthetic_present"
+    assert report["data_origin"]["n_synthetic_results"] == 1
+    assert report["data_origin"]["synthetic_result_ids"] == ["RES-SYNTHETIC-001"]
+
+    out_md = tmp_path / "report.md"
+    write_lab_result_markdown(report, out_md)
+    assert "Data-origin status: synthetic_present" in out_md.read_text(encoding="utf-8")
 
 
 def test_lab_result_report_blocks_invalid_files(tmp_path, capsys):
@@ -767,6 +1070,48 @@ def test_lab_result_report_blocks_invalid_files(tmp_path, capsys):
     assert captured["n_invalid_lab_result_files"] == 1
     report = json.loads(out_json.read_text(encoding="utf-8"))
     assert report["input_validation_status"] == "blocked_on_invalid_results"
+
+
+def test_lab_result_report_verifies_opt_in_raw_data_hashes(tmp_path, capsys):
+    results_dir = tmp_path / "lab_results"
+    results_dir.mkdir()
+    raw_dir = tmp_path / "raw_data"
+    raw_dir.mkdir()
+    raw_file = raw_dir / "RES-001.csv"
+    raw_file.write_text("result_id,value\nRES-001,4\n", encoding="utf-8")
+    result = {
+        "result_id": "RES-001",
+        "candidate_id": "CAND-001",
+        "assay_type": "MIC",
+        "organism_or_cell_line": "E. coli ATCC 25922",
+        "result_value": 4.0,
+        "result_unit": "µg/mL",
+        "result_qualitative": "active",
+        "positive_control_passed": True,
+        "negative_control_passed": True,
+        "assay_date": "2026-07-01",
+        "replicate_count": 3,
+        "performed_by_lab": "University Test Lab",
+        "raw_data_sha256": hashlib.sha256(raw_file.read_bytes()).hexdigest(),
+        "raw_data_file": "RES-001.csv",
+        "computational_candidate_certificate_hash": "abc123def456",
+        "disclaimer": "Experimental result on a computationally nominated candidate; not a drug or clinical claim.",
+    }
+    (results_dir / "res1.json").write_text(json.dumps(result), encoding="utf-8")
+
+    out_json = tmp_path / "report.json"
+    rc = main([
+        "lab-result-report",
+        "--results-dir", str(results_dir),
+        "--raw-data-dir", str(raw_dir),
+        "--out-json", str(out_json),
+    ])
+
+    assert rc == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["raw_data_verification_issues"] == []
+    report = json.loads(out_json.read_text(encoding="utf-8"))
+    assert report["raw_data_provenance"]["verification_status"] == "verified_for_all"
 
 
 @pytest.mark.parametrize("path_kind", ["missing", "file"])

@@ -9,6 +9,10 @@ Verifies:
   - Control failures are surfaced and excluded from cohort metrics
   - Orphan lab results are detected
   - Duplicate panel and result identities block clean intake
+  - Optional panel IDs prevent cross-panel result joins
+  - Optional certificate hashes prevent mismatched result joins
+  - Raw-data hash coverage is explicit and never presented as verified
+  - Synthetic result labels are retained and visible to the recalibration gate
   - JSON and Markdown output writers are non-empty and validate
   - Synthetic example data exists and validates
 
@@ -45,6 +49,7 @@ def _lab_result(**overrides) -> dict:
         "candidate_id": "TEST-CAND-001",
         "assay_type": "MIC",
         "organism_or_cell_line": "SYNTHETIC TEST - E. coli ATCC 25922",
+        "panel_id": "",
         "result_value": 8.0,
         "result_unit": "µg/mL",
         "result_qualitative": "active",
@@ -73,6 +78,8 @@ def _lab_result(**overrides) -> dict:
 def _write_panel_csv(panel_csv: Path, rows: list[dict]) -> None:
     fields = [
         "pilot_rank", "candidate_id", "sequence", "length", "seed",
+        "panel_id",
+        "computational_candidate_certificate_hash",
         "ensemble", "activity", "boman_activity", "disagreement",
         "safety", "synthesis", "novelty", "serum_stability",
         "selectivity_proxy", "rich_selectivity", "pilot_priority",
@@ -112,6 +119,7 @@ class TestLoadPanelCsv:
         assert report["n_lab_results"] == 0
         assert report["n_matched_candidates"] == 0
         assert report["per_candidate_joined"] == []
+        assert report["raw_data_provenance"]["status"] == "no_results"
 
     def test_panel_rows_parsed(self, tmp_path):
         panel = tmp_path / "panel.csv"
@@ -296,6 +304,48 @@ class TestPerCandidateJoin:
         report = build_calibration_intake_report(panel, results)
         assert report["n_orphan_lab_results"] == 1
         assert "CAND-NOT-IN-PANEL" in report["orphan_candidate_ids"]
+        assert report["orphan_lab_result_candidate_ids"] == ["CAND-NOT-IN-PANEL"]
+        assert report["input_validation_status"] == "blocked_on_orphan_results"
+        assert report["input_integrity_issues"] == [
+            {
+                "kind": "orphan_lab_result_candidate_ids",
+                "ids": ["CAND-NOT-IN-PANEL"],
+                "message": (
+                    "Lab results reference candidates absent from the submitted "
+                    "panel; they cannot be joined to prior predictions and must "
+                    "not enter a clean calibration cohort."
+                ),
+            }
+        ]
+
+    def test_orphan_lab_results_block_cli_intake(self, tmp_path):
+        from argparse import Namespace
+
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(panel, [])
+        _write_lab_result_file(
+            results, _lab_result(result_id="RES-A", candidate_id="CAND-NOT-IN-PANEL")
+        )
+
+        from openamp_foundry.cli.commands.reports import _run_calibration_intake
+
+        exit_code = _run_calibration_intake(
+            Namespace(
+                panel=str(panel),
+                results_dir=str(results),
+                out_json=str(tmp_path / "intake.json"),
+                out_md=None,
+            )
+        )
+
+        assert exit_code == 3
+        report = json.loads((tmp_path / "intake.json").read_text())
+        assert report["input_validation_status"] == "blocked_on_orphan_results"
+        assert report["input_integrity_issues"][0]["kind"] == (
+            "orphan_lab_result_candidate_ids"
+        )
 
     def test_duplicate_panel_candidate_ids_block_intake(self, tmp_path):
         results = tmp_path / "results"
@@ -369,6 +419,253 @@ class TestPerCandidateJoin:
 
         assert report["input_validation_status"] == "blocked_on_duplicate_ids"
         assert report["duplicate_lab_result_ids"] == ["DUP-RESULT"]
+
+    def test_certificate_hash_mismatch_blocks_intake(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        expected_hash = "panel-certificate-hash"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "candidate_id": "CAND-A",
+                    "sequence": "AAA",
+                    "computational_candidate_certificate_hash": expected_hash,
+                }
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                candidate_id="CAND-A",
+                computational_candidate_certificate_hash="different-certificate-hash",
+            ),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == (
+            "blocked_on_certificate_hash_mismatch"
+        )
+        assert report["certificate_hash_integrity"]["status"] == (
+            "blocked_on_certificate_hash_mismatch"
+        )
+        assert (
+            report["certificate_hash_integrity"]["mismatches"][0]["candidate_id"]
+            == "CAND-A"
+        )
+        assert report["input_integrity_issues"][-1]["kind"] == (
+            "certificate_hash_mismatch"
+        )
+
+    def test_panel_id_mismatch_blocks_intake(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [{"candidate_id": "CAND-A", "sequence": "AAA", "panel_id": "PANEL-01"}],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(candidate_id="CAND-A", panel_id="PANEL-02"),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == "blocked_on_panel_id_mismatch"
+        assert report["panel_identity"]["status"] == "blocked_on_panel_id_mismatch"
+        assert report["input_integrity_issues"][-1]["kind"] == "panel_id_mismatch"
+
+    def test_panel_id_mismatch_blocks_cli_intake(self, tmp_path):
+        from argparse import Namespace
+
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [{"candidate_id": "CAND-A", "sequence": "AAA", "panel_id": "PANEL-01"}],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(candidate_id="CAND-A", panel_id="PANEL-02"),
+        )
+
+        from openamp_foundry.cli.commands.reports import _run_calibration_intake
+
+        exit_code = _run_calibration_intake(
+            Namespace(
+                panel=str(panel),
+                results_dir=str(results),
+                out_json=str(tmp_path / "intake.json"),
+                out_md=None,
+            )
+        )
+
+        assert exit_code == 3
+        report = json.loads((tmp_path / "intake.json").read_text())
+        assert report["input_validation_status"] == "blocked_on_panel_id_mismatch"
+
+    def test_partial_panel_id_coverage_blocks_intake(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [{"candidate_id": "CAND-A", "sequence": "AAA", "panel_id": "PANEL-01"}],
+        )
+        _write_lab_result_file(results, _lab_result(candidate_id="CAND-A", panel_id=""))
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == (
+            "blocked_on_partial_panel_id_coverage"
+        )
+        assert report["panel_identity"]["unverified_candidate_ids"] == ["CAND-A"]
+
+    def test_multiple_panel_ids_in_submitted_panel_block_intake(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [
+                {"candidate_id": "CAND-A", "sequence": "AAA", "panel_id": "PANEL-A"},
+                {"candidate_id": "CAND-B", "sequence": "BBB", "panel_id": "PANEL-B"},
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(candidate_id="CAND-A", panel_id="PANEL-A"),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == "blocked_on_multiple_panel_ids"
+        assert report["panel_identity"]["panel_ids"] == ["PANEL-A", "PANEL-B"]
+
+    def test_matching_panel_id_verifies_join(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [{"candidate_id": "CAND-A", "sequence": "AAA", "panel_id": "PANEL-01"}],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(candidate_id="CAND-A", panel_id="PANEL-01"),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == "input_validated"
+        assert report["panel_identity"]["status"] == "verified"
+
+    def test_certificate_hash_mismatch_blocks_cli_intake(self, tmp_path):
+        from argparse import Namespace
+
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "candidate_id": "CAND-A",
+                    "sequence": "AAA",
+                    "computational_candidate_certificate_hash": "panel-hash",
+                }
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                candidate_id="CAND-A",
+                computational_candidate_certificate_hash="result-hash",
+            ),
+        )
+
+        from openamp_foundry.cli.commands.reports import _run_calibration_intake
+
+        exit_code = _run_calibration_intake(
+            Namespace(
+                panel=str(panel),
+                results_dir=str(results),
+                out_json=str(tmp_path / "intake.json"),
+                out_md=None,
+            )
+        )
+
+        assert exit_code == 3
+        report = json.loads((tmp_path / "intake.json").read_text())
+        assert report["input_validation_status"] == (
+            "blocked_on_certificate_hash_mismatch"
+        )
+
+    def test_certificate_hash_match_verifies_join(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        certificate_hash = "matching-certificate-hash"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "candidate_id": "CAND-A",
+                    "sequence": "AAA",
+                    "computational_candidate_certificate_hash": certificate_hash,
+                }
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                candidate_id="CAND-A",
+                computational_candidate_certificate_hash=certificate_hash,
+            ),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == "input_validated"
+        assert report["certificate_hash_integrity"]["status"] == "verified"
+        assert report["panel_identity"]["status"] == "not_available"
+        assert report["input_integrity_issues"] == []
+
+    def test_partial_certificate_hash_coverage_blocks_intake(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        certificate_hash = "matching-certificate-hash"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "candidate_id": "CAND-A",
+                    "sequence": "AAA",
+                    "computational_candidate_certificate_hash": certificate_hash,
+                }
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                candidate_id="CAND-A",
+                computational_candidate_certificate_hash="",
+            ),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["input_validation_status"] == (
+            "blocked_on_partial_certificate_hash_coverage"
+        )
+        assert report["certificate_hash_integrity"]["unverified_candidate_ids"] == [
+            "CAND-A"
+        ]
 
 
 class TestPerCandidateActuals:
@@ -654,6 +951,62 @@ class TestWriters:
         assert "Calibration Intake Report" in text
         assert "insufficient_data" in text or "TP=" in text
         assert "Honest Limitations" in text
+        assert "Raw-data hash coverage" in text
+
+    def test_raw_data_hash_coverage_is_explicit(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(panel, [])
+        _write_lab_result_file(
+            results,
+            _lab_result(result_id="WITH-HASH", raw_data_sha256="a" * 64),
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(result_id="WITHOUT-HASH", raw_data_sha256=None),
+        )
+
+        report = build_calibration_intake_report(panel, results)
+
+        assert report["raw_data_provenance"]["status"] == "partial_declaration"
+        assert report["raw_data_provenance"]["result_ids_without_raw_data_sha256"] == [
+            "WITHOUT-HASH"
+        ]
+        assert [item["kind"] for item in report["input_integrity_issues"]] == [
+            "orphan_lab_result_candidate_ids"
+        ]
+
+    def test_raw_data_hash_verification_blocks_mismatch(self, tmp_path):
+        results = tmp_path / "results"
+        results.mkdir()
+        raw_data = tmp_path / "raw_data"
+        raw_data.mkdir()
+        raw_file = raw_data / "RES-001.csv"
+        raw_file.write_text("result_id,value\nRES-001,4\n", encoding="utf-8")
+        panel = tmp_path / "panel.csv"
+        _write_panel_csv(
+            panel,
+            [
+                {
+                    "candidate_id": "TEST-CAND-001",
+                    "computational_candidate_certificate_hash": "0" * 64,
+                }
+            ],
+        )
+        _write_lab_result_file(
+            results,
+            _lab_result(
+                raw_data_sha256="a" * 64,
+                raw_data_file=raw_file.name,
+            ),
+        )
+
+        report = build_calibration_intake_report(panel, results, raw_data)
+
+        assert report["input_validation_status"] == "blocked_on_raw_data_verification"
+        assert report["raw_data_provenance"]["verification_status"] == "blocked_on_verification"
+        assert report["input_integrity_issues"][-1]["kind"] == "raw_data_hash_verification"
 
     def test_markdown_writer_survives_missing_prediction_score_key(self, tmp_path):
         report = {
@@ -737,6 +1090,8 @@ class TestExampleData:
             m["insufficient_data"]
             for m in report["cohort_metrics"].values()
         )
+        assert report["data_origin"]["status"] == "synthetic_present"
+        assert report["data_origin"]["n_synthetic_results"] == report["n_lab_results"]
 
     def test_readme_warns_synthetic(self, example_root):
         readme = example_root / "lab_results" / "README.md"

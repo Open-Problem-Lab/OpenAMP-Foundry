@@ -13,7 +13,22 @@ turning artifact presence into scientific validation.
 - Result ingestion retains schema-invalid files as structured provenance;
   calibration and reporting paths fail closed on those files.
 - Candidate rollups keep failed-control observations auditable without exposing
-  them as interpretable outcome flags or counts.
+  them as interpretable outcome flags or counts. Batch-level result summaries
+  expose raw and control-passing qualitative counts separately.
+- `ARCHITECTURE.md` records the Phase R SRG- CLI/Make surface; only a fully
+  ready verdict passes and the checked-in example remains blocked.
+- `ARCHITECTURE.md` also records the Phase Z ZAG- CLI/Make surface; all four
+  per-family accountability artifacts are required, but presence is not
+  benchmark validation.
+- `ARCHITECTURE.md` also records the Phase Y YAG- CLI/Make surface; all four
+  baseline-accountability artifacts are required, but presence is not evidence
+  that the pipeline beats cheap baselines.
+- `ARCHITECTURE.md` also records the Phase AB ABAG- CLI/Make surface; all four
+  claim-integrity and handoff artifacts are required, but presence does not
+  authenticate reviewers or validate science.
+- `ARCHITECTURE.md` records that lab-result `assay_date` values undergo
+  canonical calendar validation before they can enter sorted reports or
+  calibration metrics.
 
 ## Diagrams (Mermaid)
 

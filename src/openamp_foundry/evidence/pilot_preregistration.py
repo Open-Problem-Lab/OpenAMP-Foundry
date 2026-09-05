@@ -10,7 +10,9 @@ pipeline and the wet-lab team.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import hashlib
+import json
+from dataclasses import dataclass, field, replace
 
 
 VALID_OUTCOME_METRICS: frozenset[str] = frozenset({
@@ -59,6 +61,7 @@ class PilotPreregistration:
     amendment_count: int = 0
     amendment_reasons: list[str] = field(default_factory=list)
     notes: str = ""
+    freeze_sha256: str = ""
 
 
 @dataclass
@@ -72,6 +75,66 @@ class PreregistrationValidationResult:
 
 _SEMVER_RE = __import__("re").compile(r"^\d+\.\d+\.\d+$")
 _GIT_SHA_RE = __import__("re").compile(r"^[a-f0-9]{7,40}$")
+_SHA256_RE = __import__("re").compile(r"^[a-f0-9]{64}$")
+
+
+def compute_pilot_preregistration_sha256(
+    record: PilotPreregistration,
+) -> str:
+    """Compute the canonical integrity digest for a pre-registration.
+
+    The digest covers every record field except freeze_sha256 itself. It binds
+    the frozen selection criteria and thresholds to the exact structured
+    record content, but it does not authenticate the person who approved it.
+    """
+    payload = {
+        "record_id": record.record_id,
+        "version": record.version,
+        "frozen_at": record.frozen_at,
+        "pipeline_version": record.pipeline_version,
+        "git_sha": record.git_sha,
+        "primary_hypothesis": record.primary_hypothesis,
+        "selection_criteria": list(record.selection_criteria),
+        "score_thresholds": [
+            {
+                "score_name": threshold.score_name,
+                "threshold_value": threshold.threshold_value,
+                "direction": threshold.direction,
+            }
+            for threshold in record.score_thresholds
+        ],
+        "n_candidates_planned": record.n_candidates_planned,
+        "positive_control": record.positive_control,
+        "negative_control": record.negative_control,
+        "outcome_metric": record.outcome_metric,
+        "dry_lab_only_declaration": record.dry_lab_only_declaration,
+        "is_locked": record.is_locked,
+        "amendment_count": record.amendment_count,
+        "amendment_reasons": list(record.amendment_reasons),
+        "notes": record.notes,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def lock_pilot_preregistration(
+    record: PilotPreregistration,
+) -> PilotPreregistration:
+    """Return a locked copy of an editable draft with its content digest.
+
+    The input record is never mutated. An already locked record is rejected so
+    callers cannot silently re-freeze a record after its original digest was
+    issued; amendments must be represented and reviewed separately.
+    """
+    if record.is_locked:
+        raise ValueError(
+            "cannot lock an already locked pre-registration; record an amendment"
+        )
+    locked = replace(record, is_locked=True, freeze_sha256="")
+    return replace(
+        locked,
+        freeze_sha256=compute_pilot_preregistration_sha256(locked),
+    )
 
 
 def validate_pilot_preregistration(
@@ -158,7 +221,23 @@ def validate_pilot_preregistration(
     if not record.frozen_at.strip():
         violations.append("frozen_at must not be empty")
 
-    # Rule 13: threshold values in [0, 1]
+    # Rule 13: lock required before a record can be valid
+    if not record.is_locked:
+        violations.append(
+            "is_locked must be True — selection criteria and thresholds must be "
+            "frozen before any experiment begins"
+        )
+    elif not _SHA256_RE.fullmatch(record.freeze_sha256):
+        violations.append(
+            "freeze_sha256 must be a 64-character lowercase SHA-256 digest "
+            "for a locked record"
+        )
+    elif record.freeze_sha256 != compute_pilot_preregistration_sha256(record):
+        violations.append(
+            "freeze_sha256 does not match the canonical pre-registration content"
+        )
+
+    # Rule 14: threshold values in [0, 1]
     for t in record.score_thresholds:
         if not (0.0 <= t.threshold_value <= 1.0):
             violations.append(
@@ -166,7 +245,7 @@ def validate_pilot_preregistration(
                 f"got {t.threshold_value}"
             )
 
-    # Rule 14: amendment_reasons vocabulary
+    # Rule 15: amendment_reasons vocabulary
     for reason in record.amendment_reasons:
         if reason not in VALID_AMENDMENT_REASONS:
             violations.append(

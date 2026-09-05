@@ -190,7 +190,67 @@ review_status: draft | sent | reviewed | revised | archived
 safety_status: not-reviewed | reviewed | staged-release | restricted | rejected
 ```
 
+## Canonical machine-readable packet
+
+The current ERP contract is the V4 component-based packet. Generate it with:
+
+```bash
+PYTHONPATH=src python scripts/generate_review_packet.py \
+  --format v4 \
+  --erp-id ERP-EXAMPLE-001 \
+  --batch-id BATCH-EXAMPLE-001 \
+  --pipeline-version v0.10.3 \
+  --out outputs/review_packet_v4.json \
+  --validate
+```
+
+The packet reports `draft`, `incomplete`, or `ready` from the presence of the
+five required artifact references (BRC, ECI, FET, PTR, and SRS). Presence is
+only packaging evidence: it does not authenticate the referenced artifacts,
+reviewers, science, or biological validation. The checked-in
+`make generate-review-packet` example intentionally emits a draft with no
+artifact references. The legacy placeholder generator remains available only
+with `--format legacy` for migration compatibility.
+
+The portable schema for this canonical contract is
+`schemas/external_review_packet_v4.schema.json` with schema ID
+`https://openamp-foundry.org/schemas/external_review_packet_v4/1.0.0`. The
+older `schemas/external_review_packet.schema.json` validates the migration-only
+Phase E shape and is not the V4 contract.
+
+Each present reference must use the corresponding artifact prefix (`BRC-`,
+`ECI-`, `FET-`, `PTR-`, or `SRS-`); malformed or cross-typed IDs are rejected.
+The portable schema also enforces that component counts, missing-component
+lists, presence flags, and `packet_status` agree; schema-only consumers should
+therefore reject internally contradictory packets too.
+
+When `--validate` is supplied, an invalid packet is still written for
+inspection but the command exits nonzero. A zero exit therefore means only
+that the selected packet contract validated; it does not establish review
+readiness or biological evidence.
+
+When a reviewer outcome is recorded against a frozen PilotEvidencePackage JSON,
+include `pep_sha256`, the SHA-256 of that exact canonical JSON object. Run:
+
+```bash
+PYTHONPATH=src python -m openamp_foundry.cli domain-review-outcome-check \
+  --entry-json '<DRO JSON>' \
+  --package-json path/to/frozen-pep.json
+```
+
+The package-aware command fails closed when the hash is missing, malformed, or
+does not match the supplied package. A verified hash binds the outcome to the
+package bytes only; it does not authenticate the reviewer, establish reviewer
+independence, validate the science, or upgrade the proof level. Legacy outcomes
+without a package file remain ID-validatable but are not package-hash verified.
+
 ## Review outcomes
+
+Review outcome records must use real ISO calendar dates, not only the
+`YYYY-MM-DD` shape. This catches malformed metadata such as `2026-02-30` at
+validation time. Date validity does not authenticate the reviewer, establish
+scientific correctness, or upgrade the proof level; those remain human-review
+and evidence questions.
 
 Allowed outcomes:
 

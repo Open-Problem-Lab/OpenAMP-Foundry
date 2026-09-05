@@ -1,6 +1,26 @@
 # Roadmap
 
-## Current state — 2026-07-19
+## Current state — 2026-09-06
+
+Phase AB is complete as of 2026-07-26. AB5 exposes the existing CSD-, RDR-,
+EGN-, and EHP- claim-integrity artifacts through an ABAG- aggregate, CLI
+command, and Make target. The command fails closed unless all four artifact
+types are present. This is a claim-review and handoff assembly check only; it
+does not authenticate reviewers, validate science, establish biology, or
+authorize release.
+
+Phase Y is complete as of 2026-07-25. Y5 exposes the existing CBR-, FIA-, SDA-,
+and PMC- baseline-accountability artifacts through a YAG- aggregate, CLI
+command, and Make target. The command fails closed unless all four artifact
+IDs are present. This is an assembly and review-control check only; it does
+not establish baseline superiority or biological validity.
+
+Phase Z is complete as of 2026-07-23. Z5 exposes the existing FBH-, BXR-,
+ARG-, and CBF- per-family accountability artifacts through a ZAG- aggregate,
+CLI command, and Make target. The command fails closed unless all four artifact
+IDs are present. This is an assembly and review-control check only; it does not
+establish benchmark superiority, adapter quality, biological validity, or
+release readiness.
 
 Phase AC is complete as of 2026-07-15. AC1 records one explicit disconfirming
 test as a DTR- artifact. AC2 aggregates those records into an ACDG- gate. AC3
@@ -8,6 +28,20 @@ exposes that gate through a CLI and make target, with nonzero status for
 partial or not-established results so the review control is usable in
 repeatable loops. This is an auditability improvement only. It does not
 validate biology, improve benchmark performance, or authorize release.
+
+On 2026-07-25, the Phase Y baseline-vs-pipeline accountability gate became
+executable through `phase-y-accountability-gate-check` and its Make target.
+Only a complete CBR/FIA/SDA/PMC artifact set returns success; partial or
+malformed inputs fail closed. This makes baseline-accountability review
+repeatable, but it does not show that the pipeline beats cheap baselines or
+create biological evidence.
+
+On 2026-07-26, the Phase AB claim-integrity gate became executable through
+`phase-ab-claim-integrity-gate-check` and its Make target. Only a complete
+CSD/RDR/EGN/EHP artifact set returns success; partial or malformed inputs fail
+closed. This makes claim downgrade, reviewer decision, evidence-gap, and
+external handoff assembly repeatable, but it does not authenticate reviewers,
+validate science, establish biology, or authorize release.
 
 On 2026-07-16, Phase AA AA6 made the reproducibility gate runnable through the
 CLI and Make surface. It fails closed unless RMC, DCR, CFP, and SBW artifact
@@ -40,6 +74,143 @@ retrospective cohort metrics, or interpretable per-candidate outcome flags. The
 recalibration gate continues to reject any control failure. This prevents a
 failed assay from influencing descriptive triage while preserving the negative
 evidence; it does not validate the assay.
+
+On 2026-07-20, calibration intake also tightened join completeness: results for
+candidate IDs absent from the submitted panel are retained as orphan provenance,
+but become structured input-integrity issues that block clean intake and
+recalibration. This prevents a result directory from silently broadening the
+panel-specific cohort; it does not validate the underlying assay.
+
+On 2026-07-20, the Phase R scientific-review readiness gate became executable
+through the CLI and Make review loop. Only `ready_for_external_review` returns
+success; conditional, incomplete, safety-blocked, and malformed inputs fail
+closed. The default Make example remains intentionally blocked because the
+repository has no qualified wet-lab evidence. This improves review discipline,
+but does not establish biological validation or authorize release.
+
+On 2026-07-21, calibration intake gained an optional certificate-identity
+check: when a panel supplies `computational_candidate_certificate_hash`, every
+matched result hash must agree. Mismatches and partial opted-in coverage now
+block clean intake and recalibration, while legacy panels explicitly report
+identity as unavailable. This prevents a result with a reused or relabeled
+candidate ID from being treated as evidence for the wrong frozen artifact; it
+does not validate assay quality or establish biological claims.
+
+On 2026-07-21, the lab-result report completed the adjacent control-quality
+boundary at batch level: raw qualitative observations remain available for
+audit, while `by_usable_qualitative_result` counts only assays whose positive
+and negative controls both passed. Markdown reports display both views with
+explicit labels. This prevents failed-control observations from being read as
+usable cohort evidence; it does not validate assay quality or establish
+biological claims.
+
+On 2026-07-22, calibration intake gained an optional frozen `panel_id` check.
+When a panel opts in, every matched result must carry the same panel ID;
+multiple submitted panel IDs, mismatches, and partial coverage block clean
+intake. Legacy panels explicitly report panel identity as unavailable. This
+prevents results from another panel or batch from being attached to a reused
+candidate ID; it does not validate assay quality or establish biological claims.
+
+On 2026-07-22, lab-result and calibration reports began exposing declared
+`raw_data_sha256` coverage as `no_results`, `not_available`,
+`partial_declaration`, or `declared_for_all`. A declared hash is provenance
+visibility only, not an independently verified raw-file hash, and missing
+legacy declarations remain accepted. This makes an audit gap visible without
+turning metadata into assay validation or a recalibration permission.
+
+On 2026-07-24, the same reports gained an opt-in file-backed verification
+path. A result may carry a relative `raw_data_file`; when `--raw-data-dir` is
+supplied, the loader independently hashes each declared file, rejects paths
+outside that directory, and reports missing or mismatched files. Verification
+failures block clean calibration intake, while legacy declaration-only intake
+remains compatible. This verifies file identity only; it does not validate
+assay contents, reviewer identity, biology, or release readiness.
+
+On 2026-07-24, domain-review outcome validation gained an opt-in frozen-package
+identity check. When `domain-review-outcome-check` receives `--package-json`,
+the outcome must carry a matching `pep_sha256`; missing, malformed, or
+mismatched hashes fail closed. ID-only validation remains available for legacy
+records. This binds a review record to package bytes, but does not authenticate
+the reviewer, establish independence, validate the science, or create
+biological evidence.
+
+On 2026-07-25, lab-result loading also began checking `assay_date` as a real,
+canonical `YYYY-MM-DD` calendar date. JSON Schema's date format annotation is
+not enforced by the generic validator, so impossible or non-canonical dates
+are now retained as structured invalid-file errors and cannot enter sorted
+reports or calibration metrics. This is temporal input integrity, not assay
+validation or biological evidence.
+
+On 2026-07-26, calibration intake began exposing explicit `SYNTHETIC` labels
+by result ID. Synthetic records remain usable for demonstrations and audit, but
+the recalibration gate now fails closed even when cohort, control, join, and
+metric rules pass. Unclassified records are not inferred to be real wet-lab
+evidence. This enforces the existing synthetic-data policy and does not create
+wet-lab evidence.
+
+On 2026-08-10, the canonical V4 external-review packet gained a portable JSON
+Schema and version-registry entry. The generator's `--validate` path now checks
+both the Python contract and the V4 schema, including component cardinality,
+typed artifact references, and absent/present consistency. The legacy Phase E
+schema remains migration-only. This closes a packaging and interoperability
+gap; it does not authenticate artifacts or reviewers, validate science, or
+establish biological evidence.
+
+On 2026-08-14, the same V4 packet contract tightened `created_at` to a canonical
+UTC-second timestamp in both the Python validator and portable schema. The
+Python path also rejects impossible calendar dates. This closes a provenance
+shape gap for schema-only consumers; it does not authenticate artifacts or
+reviewers, validate science, or establish biological evidence.
+
+On 2026-08-18, the V4 Python validator now derives and checks `packet_status`
+from component presence, matching the portable JSON Schema. Direct library
+callers therefore receive the same fail-closed status-consistency boundary as
+CLI-generated packets. This is packaging integrity only; it does not
+authenticate artifacts or reviewers, validate science, or establish biological
+evidence.
+
+On 2026-08-21, standalone `lab-result-report` JSON and Markdown outputs began
+carrying the shared data-origin summary used by calibration intake. Synthetic
+labels are therefore visible in both result-reporting paths, while unclassified
+records remain explicitly unclassified rather than being presented as verified
+wet-lab evidence. This closes an intake-audit visibility gap; it does not
+validate assay contents, authenticate a lab, establish biology, or permit
+recalibration.
+
+On 2026-08-22, the standalone `lab-result-report` JSON artifact gained a
+portable schema and build-time validation for its summary, data-origin,
+control-failure, raw-data, and input-blocker fields. This makes the report
+interoperable without treating report structure as assay validation, lab
+authentication, biological evidence, or recalibration authority.
+
+On 2026-08-23, pilot pre-registration validation began failing closed on
+unlocked records. Drafts remain editable, but only a locked PRR- record can
+validate as the pre-experiment contract. This enforces the existing
+pre-registration boundary; it does not validate assay procedures, biological
+claims, or partner readiness.
+
+On 2026-08-24, locked PRR- records also began requiring a deterministic
+freeze SHA-256 over their canonical content. Later edits to selection criteria
+or thresholds therefore fail validation, while the digest remains integrity
+evidence rather than signer authentication or biological evidence.
+
+On 2026-09-01, the PRR module gained a non-mutating lock helper that creates a
+valid hashed locked copy from an editable draft and rejects re-locking. This
+reduces manual freeze mistakes without authenticating signers or expanding the
+record into assay or biological evidence.
+
+On 2026-09-02, the PRR contract became reachable through the
+`pilot-preregistration-check` CLI. It now exposes locked-state and digest
+checks in the normal review loop, while remaining an integrity check rather
+than signer authentication, assay validation, or biological evidence.
+
+On 2026-09-05, the PRR CLI began rejecting malformed field types as structured
+input errors. This prevents permissive coercion or handler crashes at the JSON
+boundary while leaving valid locked and editable records unchanged.
+
+On 2026-09-06, the same boundary began validating nested PRR list entries,
+preventing malformed amendment or selection items from reaching semantic
+validation as unexpected Python types.
 
 This file is the current milestone authority. The older
 [`50_LOOP_PLAN.md`](50_LOOP_PLAN.md) is a historical execution record, not a

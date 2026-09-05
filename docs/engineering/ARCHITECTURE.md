@@ -58,7 +58,27 @@ Top-level evidence gates are review controls, not scientific verdicts. The
 Phase AA AARG- gate is available through the CLI and Make surface so a normal
 loop can fail closed when RMC, DCR, CFP, or SBW provenance artifacts are
 missing. Presence of those artifacts does not validate their contents or any
-biological claim.
+biological claim. The Phase R SRG- gate is also available through the CLI and
+Make surface; only a fully ready verdict passes, while conditional, incomplete,
+safety-blocked, or malformed records fail closed. Its checked-in example is
+intentionally blocked until qualified evidence exists.
+The Phase Z ZAG- gate is available through the same surface and fails closed
+when the per-family challenge, explanation, adapter-registry, or cheap-baseline
+artifacts are missing. Presence of those artifacts does not establish
+benchmark superiority or adapter ranking authority.
+The Phase Y YAG- gate is available through the same surface and fails closed
+when the baseline comparison, feature-importance, selection-diversity, or
+pipeline-maturity artifacts are missing. Presence of those artifacts does not
+establish that the pipeline beats cheap baselines or validate biology.
+The Phase AB ABAG- gate is available through the same surface and fails closed
+when claim-strength downgrade, reviewer-decision, evidence-gap, or external-
+handoff artifacts are missing. Presence of those artifacts does not
+authenticate reviewers, validate the science, establish biology, or authorize
+release.
+Domain-review outcomes can also be bound to the exact frozen pilot-evidence
+package JSON through `pep_sha256` and the package-aware CLI path. This closes a
+package-revision ambiguity while preserving ID-only compatibility for legacy
+records; it does not authenticate reviewers or establish scientific validity.
 
 ## Longer-range architecture
 
@@ -94,6 +114,37 @@ explicit no-results state. Control-failed observations remain in the audit
 report but are excluded from per-assay actual predicates, cohort metrics, and
 interpretable per-candidate outcome flags. Raw outcome fields and failed-result
 IDs remain available for audit; failed controls still block recalibration.
+Batch-level lab-result summaries apply the same boundary: raw qualitative
+counts remain available for audit, while `by_usable_qualitative_result` is
+restricted to observations whose positive and negative controls both passed.
+Human-readable reports label the two views separately.
+Lab-result reports also expose whether `raw_data_sha256` is absent, partially
+declared, or declared for every loaded result. This is provenance visibility,
+not independent verification of the raw assay files and not a biological
+validation gate; legacy results remain accepted when the optional field is
+missing. An optional `raw_data_file` reference can be verified by supplying
+`--raw-data-dir`; the verifier hashes files independently, rejects path escape,
+and blocks clean calibration intake on missing or mismatched files. This binds
+the declaration to file bytes only and does not validate assay contents.
+The loader also validates `assay_date` as a real, canonical `YYYY-MM-DD`
+calendar date because the generic JSON Schema helper does not enforce format
+annotations. Invalid dates remain structured file errors and cannot enter
+sorted reports or calibration metrics.
+Intake reports also classify explicit `SYNTHETIC` labels by result ID. These
+records remain available for demonstrations and audit, but the recalibration
+gate fails closed when any synthetic-labeled result is present. Unclassified
+records are not inferred to be real wet-lab evidence.
+Results whose candidate IDs are absent from the submitted calibration panel are
+retained as orphan provenance but block clean intake because they cannot be
+joined to prior predictions. This prevents a broader result directory from
+silently inflating a panel-specific cohort. New panels may additionally carry
+the certificate hash already required on each lab result. When present, intake
+compares hashes for every tested candidate and blocks mismatches or partial
+opted-in coverage. Legacy panels without that optional column are reported as
+certificate identity not available, not silently verified. New panels may also
+carry a frozen `panel_id` in the panel and result records. Intake blocks
+multiple submitted panel IDs, mismatches, or partial opted-in coverage. Legacy
+panels without that optional field report panel identity not available.
 
 ## Package map
 

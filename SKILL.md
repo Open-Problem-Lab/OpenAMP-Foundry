@@ -19,6 +19,11 @@ qualified lab evidence.
   honesty checks and regression entrypoints.
 - `src/openamp_foundry/calibration/`: lab-result intake, gate, and proposal-only
   recalibration.
+- `src/openamp_foundry/checks/`: deterministic repository-integrity checks,
+  including stale documentation reference detection.
+- `tests/test_pipeline_dry_run_e2e.py`: toy-only end-to-end smoke test that
+  exercises the current public artifact APIs without external calls or lab
+  claims.
 
 ## Diagrams
 
@@ -71,9 +76,11 @@ sequenceDiagram
 1. Read `AGENTS.md`, `CLAUDE.md`, `MISSION.md`, and `docs/evidence/METRICS_CURRENT.md`.
 2. Treat `docs/evidence/METRICS_CURRENT.md` plus `outputs/metrics_snapshot.json` as the
    current benchmark truth when docs disagree.
-3. For the required disconfirming pass, use
+3. Keep the live test-graph count in `METRICS_CURRENT.md` synchronized; the
+   current-state alignment test fails when the recorded count drifts.
+4. For the required disconfirming pass, use
    `docs/evidence/DISCONFIRMING_TEST_RECORD_GUIDE.md` when recording a challenge.
-4. Preserve the safety boundary: dry-lab scoring and evidence only. No wet-lab
+5. Preserve the safety boundary: dry-lab scoring and evidence only. No wet-lab
    protocols, pathogen enablement, toxicity-maximizing objectives, or biological
    proof claims.
 
@@ -100,6 +107,43 @@ RMC, DCR, CFP, and SBW artifact IDs are all present. This is a structural
 provenance check, not proof that the underlying run is scientifically correct
 or biologically valid.
 
+The Phase AB claim-integrity gate is available through
+`openamp-foundry phase-ab-claim-integrity-gate-check --entry-json ...` or
+`make phase-ab-claim-integrity-gate-check`. It returns success only when CSD,
+RDR, EGN, and EHP components are all present. This checks claim-review and
+external-handoff assembly; it does not authenticate reviewers, validate the
+science, establish biology, or authorize release.
+
+The Phase Z per-family accountability gate is available through
+`openamp-foundry phase-z-accountability-gate-check --entry-json ...` or
+`make phase-z-accountability-gate-check`. It returns success only when FBH,
+BXR, ARG, and CBF artifact IDs are all present. This checks that the
+per-family benchmark and adapter-accountability surface was assembled; it does
+not prove benchmark superiority, biological validity, or release readiness.
+
+The Phase Y baseline-vs-pipeline accountability gate is available through
+`openamp-foundry phase-y-accountability-gate-check --entry-json ...` or
+`make phase-y-accountability-gate-check`. It returns success only when CBR,
+FIA, SDA, and PMC artifact IDs are all present. This checks that the
+cheap-baseline comparison surface was assembled; it does not prove that the
+pipeline beats those baselines, validate biology, or authorize an external
+pilot claim.
+
+The Phase R scientific-review readiness gate is available as
+`openamp-foundry scientific-review-readiness-check --entry-json ...` or
+`make scientific-review-readiness-check`. It returns success only for
+`ready_for_external_review`; conditional, incomplete, safety-blocked, and
+malformed inputs fail closed. The Make example is intentionally blocked until
+qualified evidence exists. This is a dry-lab documentation control, not
+biological validation or release authorization.
+
+When the frozen pilot-evidence package JSON is available, validate a domain
+review outcome with `domain-review-outcome-check --entry-json ...
+--package-json <pep.json>`. The package-aware path requires a matching
+`pep_sha256`; ID-only validation remains available for legacy records. A
+verified hash proves package identity only, not reviewer authentication,
+scientific correctness, or biological validity.
+
 External-result intake is also fail-closed at the review boundary. Use the
 structured loader/report fields `invalid_lab_result_files` and
 `input_validation_status` to preserve schema-invalid returns; the
@@ -108,12 +152,39 @@ to proceed while any invalid file is excluded. Missing or non-directory result
 paths return an input error before a report is written. An existing empty
 directory is the only valid zero-result state. Duplicate result IDs and
 duplicate panel candidate IDs are also preserved as `input_integrity_issues` and
-block clean intake. These controls catch incomplete or ambiguous input, not
-assay-quality or biological-validity problems. Control-failed assay observations
-remain visible for audit but are excluded from per-assay actual predicates,
-cohort metrics, and interpretable per-candidate outcome flags. Raw outcome fields
-and failed-result IDs remain available for audit; failed controls still block
-recalibration.
+block clean intake. Result candidate IDs absent from the submitted panel are
+preserved as orphan-result integrity issues and also block clean intake, because
+they cannot be joined to prior predictions. These controls catch incomplete or
+ambiguous input, not assay-quality or biological-validity problems. Control-failed
+assay observations remain visible for audit but are excluded from per-assay
+actual predicates, cohort metrics, and interpretable per-candidate outcome
+flags. Raw outcome fields, failed-result IDs, and raw batch-level qualitative
+counts remain available for audit; usable batch counts are restricted to assays
+with both controls passing. Failed controls still block recalibration. New
+panels may also carry
+`computational_candidate_certificate_hash`; when present, result hashes must
+match for every tested candidate. Mismatches or partial opted-in coverage block
+clean intake. Legacy panels without the optional column are reported as
+certificate identity not available, not silently verified. New panels may also
+carry an optional frozen `panel_id` in both panel and result records. Multiple
+panel IDs, mismatches, or partial opted-in coverage block clean intake; legacy
+panels report panel identity not available, not silently verified.
+Lab-result reports also expose raw assay-file hash coverage as `no_results`,
+`not_available`, `partial_declaration`, or `declared_for_all`. A declared
+`raw_data_sha256` is provenance only, not an independently verified file hash;
+this status does not change legacy intake acceptance or recalibration policy.
+When a caller supplies `--raw-data-dir`, records with `raw_data_file` can be
+independently checked against their declared SHA-256. Missing files, path
+escape, and mismatches block clean calibration intake; matching bytes prove
+file identity only, not assay validity or biology.
+Lab-result `assay_date` values are additionally checked as real, canonical
+`YYYY-MM-DD` calendar dates because JSON Schema's date format annotation is not
+enforced by the generic validator. Impossible or non-canonical dates are
+retained as structured invalid-file errors and cannot enter reports or metrics.
+Intake reports also classify explicit `SYNTHETIC` labels by result ID. Synthetic
+records remain available for demonstrations and audit, but the recalibration
+gate rejects any report containing them; unlabeled records remain unclassified,
+not asserted to be real wet-lab evidence.
 
 - `make bench-easy-baseline`: trivial length/charge baselines.
 - `make bench-charge-matched`: adversarial check that removes charge-density

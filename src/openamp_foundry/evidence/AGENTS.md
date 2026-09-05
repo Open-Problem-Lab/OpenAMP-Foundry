@@ -9,8 +9,24 @@ claim boundaries, reproducibility metadata, and explicit negative findings.
 
 - `disconfirming_test_record.py`: one auditable attempt to disprove a claim.
 - `phase_ac_disconfirming_gate.py`: aggregate gate for unresolved follow-up.
+- `phase_z_accountability_gate.py`: aggregate gate for per-family benchmark
+  and adapter accountability artifacts.
+- `phase_y_accountability_gate.py`: aggregate gate for cheap-baseline,
+  feature-importance, diversity, and maturity accountability artifacts.
+- `phase_ab_claim_integrity_gate.py`: aggregate gate for claim downgrades,
+  reviewer decisions, evidence gaps, and external handoff integrity.
 - `external_review_packet.py`: current V4 component-based review packet; its
   legacy Phase E bridge is migration-only.
+- `schemas/external_review_packet_v4.schema.json`: portable JSON Schema for the
+  canonical V4 packet. The older `external_review_packet.schema.json` is the
+  legacy Phase E contract and remains only for migration compatibility.
+- `scripts/generate_review_packet.py --format v4`: canonical JSON generator for
+  that component packet. Its default legacy mode exists only for migration;
+  new workflows must use V4 and treat missing components as draft/incomplete.
+- `domain_review_outcome.py`: records reviewer outcomes. Use its package-aware
+  validator when the frozen PEP JSON is available; `pep_sha256` binds the
+  outcome to that exact JSON but does not authenticate the reviewer or prove
+  biology.
 
 ## Diagrams (Mermaid)
 
@@ -31,6 +47,10 @@ flowchart LR
   Record["DisconfirmingTestRecord"] --> Gate["PhaseAcDisconfirmingGate"]
   Gate --> Review["Human claim review"]
   Gate -. "does not prove biology" .-> Boundary["Dry-lab boundary"]
+  YAG["YAG- baseline accountability"] --> Review
+  YAG -. "does not prove baseline superiority" .-> Boundary
+  ABAG["ABAG- claim integrity"] --> Review
+  ABAG -. "does not authenticate reviewers or validate science" .-> Boundary
 ```
 
 ### Sequence Diagram
@@ -45,4 +65,15 @@ sequenceDiagram
   Agent->>ACDG: aggregate validated records
   ACDG-->>Reviewer: unresolved actions and verdict
   Reviewer->>ACDG: record explicit resolution
+```
+
+### Frozen review-package identity
+
+```mermaid
+flowchart LR
+  PEP["Frozen PEP JSON"] --> Hash["stable_json_hash"]
+  Outcome["DRO- outcome + pep_sha256"] --> Verify["Package-aware validator"]
+  Hash --> Verify
+  Verify -->|match| Bound["Identity bound"]
+  Verify -->|missing or mismatch| Blocked["Fail closed"]
 ```

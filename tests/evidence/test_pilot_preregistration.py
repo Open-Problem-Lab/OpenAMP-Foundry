@@ -9,7 +9,9 @@ from openamp_foundry.evidence.pilot_preregistration import (
     ScoreThreshold,
     VALID_AMENDMENT_REASONS,
     VALID_OUTCOME_METRICS,
+    compute_pilot_preregistration_sha256,
     format_pilot_preregistration,
+    lock_pilot_preregistration,
     validate_pilot_preregistration,
 )
 
@@ -37,10 +39,13 @@ def _make_record(**kwargs) -> PilotPreregistration:
         negative_control="pbs_vehicle",
         outcome_metric="minimum_inhibitory_concentration",
         dry_lab_only_declaration=True,
-        is_locked=False,
+        is_locked=True,
     )
     defaults.update(kwargs)
-    return PilotPreregistration(**defaults)
+    record = PilotPreregistration(**defaults)
+    if record.is_locked and not record.freeze_sha256:
+        record.freeze_sha256 = compute_pilot_preregistration_sha256(record)
+    return record
 
 
 # --- ScoreThreshold ---
@@ -82,7 +87,14 @@ class TestPilotPreregistration:
         assert r.amendment_count == 0
 
     def test_is_locked_default_false(self):
-        r = _make_record()
+        r = PilotPreregistration(
+            record_id="PRR-DEFAULT-001",
+            version="1.0.0",
+            frozen_at="2026-07-10T00:00:00Z",
+            pipeline_version="0.9.0",
+            git_sha="abc1234",
+            primary_hypothesis="draft",
+        )
         assert r.is_locked is False
 
 
@@ -111,6 +123,55 @@ class TestValidatePilotPreregistration:
         result = validate_pilot_preregistration(_make_record())
         assert result.is_valid is True
         assert result.violations == []
+
+    def test_unlocked_record_is_not_valid_for_experiment_start(self):
+        result = validate_pilot_preregistration(_make_record(is_locked=False))
+        assert result.is_valid is False
+        assert any("is_locked" in violation for violation in result.violations)
+
+    def test_locked_record_requires_freeze_digest(self):
+        record = _make_record()
+        record.freeze_sha256 = ""
+        result = validate_pilot_preregistration(record)
+        assert result.is_valid is False
+        assert any("freeze_sha256" in violation for violation in result.violations)
+
+    def test_freeze_digest_binds_selection_criteria(self):
+        record = _make_record()
+        record.selection_criteria.append("new criterion after freeze")
+        result = validate_pilot_preregistration(record)
+        assert result.is_valid is False
+        assert any("does not match" in violation for violation in result.violations)
+
+    def test_wrong_freeze_digest_is_rejected(self):
+        record = _make_record(freeze_sha256="0" * 64)
+        result = validate_pilot_preregistration(record)
+        assert result.is_valid is False
+        assert any("does not match" in violation for violation in result.violations)
+
+    def test_freeze_digest_is_deterministic(self):
+        first = _make_record()
+        second = _make_record()
+        assert compute_pilot_preregistration_sha256(first) == compute_pilot_preregistration_sha256(second)
+
+    def test_lock_helper_returns_valid_hashed_copy(self):
+        draft = _make_record(is_locked=False)
+        locked = lock_pilot_preregistration(draft)
+        result = validate_pilot_preregistration(locked)
+        assert result.is_valid is True
+        assert locked.is_locked is True
+        assert locked.freeze_sha256 == compute_pilot_preregistration_sha256(locked)
+
+    def test_lock_helper_does_not_mutate_draft(self):
+        draft = _make_record(is_locked=False)
+        locked = lock_pilot_preregistration(draft)
+        assert draft.is_locked is False
+        assert draft.freeze_sha256 == ""
+        assert locked is not draft
+
+    def test_lock_helper_rejects_already_locked_record(self):
+        with pytest.raises(ValueError, match="already locked"):
+            lock_pilot_preregistration(_make_record())
 
     def test_returns_validation_result(self):
         result = validate_pilot_preregistration(_make_record())

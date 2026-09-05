@@ -10,12 +10,26 @@ Gate workflows are structural review controls, never biological proof.
 - `METRICS_CURRENT.md`: current measured evidence and limitations.
 - `PROOF_LADDER.md`: maximum claim strength by evidence level.
 - AARG-: checks presence of reproducibility artifacts before certification.
+- ZAG-: checks presence of per-family benchmark and adapter-accountability
+  artifacts before that review surface is treated as complete.
+- YAG-: checks presence of baseline-vs-pipeline accountability artifacts before
+  the cheap-baseline review surface is treated as complete.
 - Lab-result intake blockers are evidence-completeness signals, not assay
   validation; invalid files must remain visible in reports and gates.
 - Control-failed assay observations remain visible for audit but are excluded
   from per-assay calibration predicates, cohort metrics, and interpretable
-  candidate outcome flags; raw fields remain available for audit and they cannot
-  support recalibration.
+  candidate outcome flags and usable batch-level qualitative counts; raw fields
+  and raw summary counts remain available for audit and they cannot support
+  recalibration.
+- The Phase R SRG- workflow exposes scientific-review readiness through the CLI
+  and Make surface; conditional, incomplete, safety-blocked, or malformed
+  records must fail closed.
+- Impossible or non-canonical lab-result `assay_date` values remain structured
+  invalid-file evidence and cannot support downstream metrics; this is temporal
+  input integrity, not assay validation.
+- Intake reports classify explicit `SYNTHETIC` labels by result ID. Synthetic
+  records remain audit-visible but force the recalibration gate to fail closed;
+  unclassified records are not asserted to be real wet-lab evidence.
 
 ## Diagrams (Mermaid)
 

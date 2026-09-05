@@ -10,13 +10,63 @@ review and independent replication.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from openamp_foundry.evidence.schemas import validate_json_schema
 
 LAB_RESULT_SCHEMA = Path(__file__).parent.parent.parent.parent / "schemas" / "lab_result.schema.json"
+
+
+def _contains_synthetic_label(value: Any) -> bool:
+    """Return whether a result field explicitly labels the record synthetic."""
+    return "synthetic" in str(value or "").casefold()
+
+
+def summarise_data_origin(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Expose synthetic-result provenance without inferring real validation.
+
+    The lab-result schema predates an explicit origin enum, so this helper uses
+    the repository's required synthetic labels as a conservative audit signal.
+    An unlabeled record is reported as ``unclassified`` rather than silently
+    upgraded to real wet-lab evidence.
+    """
+    synthetic_result_ids = sorted(
+        result["result_id"]
+        for result in results
+        if any(
+            _contains_synthetic_label(result.get(field))
+            for field in (
+                "candidate_id",
+                "organism_or_cell_line",
+                "performed_by_lab",
+                "notes",
+                "disclaimer",
+            )
+        )
+    )
+    if not results:
+        status = "no_results"
+    elif synthetic_result_ids:
+        status = "synthetic_present"
+    else:
+        status = "unclassified"
+
+    return {
+        "status": status,
+        "n_results": len(results),
+        "n_synthetic_results": len(synthetic_result_ids),
+        "synthetic_result_ids": synthetic_result_ids,
+        "n_unclassified_results": len(results) - len(synthetic_result_ids),
+        "disclaimer": (
+            "Synthetic labels are surfaced as audit provenance and block "
+            "recalibration. Unclassified records are not independently "
+            "verified as real wet-lab evidence."
+        ),
+    }
 
 
 def load_lab_result(path: str | Path) -> dict[str, Any]:
@@ -28,6 +78,18 @@ def load_lab_result(path: str | Path) -> dict[str, Any]:
     with p.open("r", encoding="utf-8") as f:
         result = json.load(f)
     validate_json_schema(result, LAB_RESULT_SCHEMA)
+    assay_date = result["assay_date"]
+    try:
+        parsed_assay_date = date.fromisoformat(assay_date)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "assay_date must be a valid ISO 8601 calendar date (YYYY-MM-DD)"
+        ) from exc
+    if parsed_assay_date.isoformat() != assay_date:
+        raise ValueError(
+            "assay_date must use the canonical ISO 8601 calendar date form "
+            "(YYYY-MM-DD)"
+        )
     return result
 
 
@@ -94,18 +156,26 @@ def validate_lab_results_directory(directory: str | Path) -> Path:
 def summarise_lab_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Produce a summary of lab results for a candidate batch.
 
-    Returns counts by assay_type, qualitative result, and control status.
+    Returns raw counts by assay type and qualitative result, plus
+    control-passing qualitative counts. Raw observations remain available for
+    audit, but usable counts must not treat failed-control assays as
+    interpretable cohort evidence.
     All findings are raw experimental observations, not validated biological claims.
     """
     n = len(results)
     if n == 0:
         return {
             "n_results": 0,
+            "n_valid_controls": 0,
+            "by_assay_type": {},
+            "by_qualitative_result": {},
+            "by_usable_qualitative_result": {},
             "disclaimer": "No lab results loaded.",
         }
 
     by_type: dict[str, int] = {}
     by_qualitative: dict[str, int] = {}
+    by_usable_qualitative: dict[str, int] = {}
     n_controls_ok = 0
 
     for r in results:
@@ -117,17 +187,176 @@ def summarise_lab_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
         if r.get("positive_control_passed") and r.get("negative_control_passed"):
             n_controls_ok += 1
+            by_usable_qualitative[qual] = by_usable_qualitative.get(qual, 0) + 1
 
     return {
         "n_results": n,
         "n_valid_controls": n_controls_ok,
         "by_assay_type": by_type,
         "by_qualitative_result": by_qualitative,
+        "by_usable_qualitative_result": by_usable_qualitative,
         "disclaimer": (
             "Lab result summary. Raw experimental observations only. "
             "Not a validated drug efficacy, safety, or clinical claim. "
             "All results require qualified expert interpretation and independent replication."
         ),
+    }
+
+
+def summarise_raw_data_provenance(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Describe declared raw-assay-file hash coverage without claiming verification.
+
+    ``raw_data_sha256`` is optional because legacy or partner-provided results
+    may not include a separately retrievable raw-data file. A declared hash is
+    useful provenance, but it is not verified unless the referenced file is
+    available and hashed independently of this record.
+    """
+    result_ids_with_hash = sorted(
+        result["result_id"]
+        for result in results
+        if str(result.get("raw_data_sha256") or "").strip()
+    )
+    result_ids_without_hash = sorted(
+        result["result_id"]
+        for result in results
+        if not str(result.get("raw_data_sha256") or "").strip()
+    )
+    n_results = len(results)
+    n_with_hash = len(result_ids_with_hash)
+    if n_results == 0:
+        status = "no_results"
+    elif n_with_hash == 0:
+        status = "not_available"
+    elif n_with_hash < n_results:
+        status = "partial_declaration"
+    else:
+        status = "declared_for_all"
+
+    return {
+        "status": status,
+        "n_results": n_results,
+        "n_with_raw_data_sha256": n_with_hash,
+        "n_without_raw_data_sha256": len(result_ids_without_hash),
+        "result_ids_with_raw_data_sha256": result_ids_with_hash,
+        "result_ids_without_raw_data_sha256": result_ids_without_hash,
+        "disclaimer": (
+            "A declared raw_data_sha256 identifies a claimed raw assay file; "
+            "it is not an independently verified file hash unless the raw file "
+            "is available and checked separately."
+        ),
+    }
+
+
+def verify_raw_data_provenance(
+    results: list[dict[str, Any]], raw_data_dir: str | Path | None = None
+) -> dict[str, Any]:
+    """Verify declared raw-assay hashes when a raw-data directory is supplied.
+
+    Verification is opt-in so legacy and partner-provided result records remain
+    readable. When enabled, every declared hash must point to a relative file
+    inside ``raw_data_dir`` and match the independently computed SHA-256. This
+    function does not interpret assay contents or make a biological claim.
+    """
+    declaration = summarise_raw_data_provenance(results)
+    if raw_data_dir is None:
+        return {
+            **declaration,
+            "verification_status": "not_requested",
+            "raw_data_dir": None,
+            "n_verified": 0,
+            "result_ids_verified": [],
+            "verification_issues": [],
+        }
+
+    root = Path(raw_data_dir)
+    if not root.exists():
+        raise FileNotFoundError(f"raw data directory not found: {root}")
+    if not root.is_dir():
+        raise NotADirectoryError(f"raw data path is not a directory: {root}")
+
+    verified_ids: list[str] = []
+    verification_issues: list[dict[str, str]] = []
+    for result in results:
+        declared_hash = str(result.get("raw_data_sha256") or "").strip().lower()
+        if not declared_hash:
+            continue
+        result_id = str(result.get("result_id", ""))
+        raw_data_file = str(result.get("raw_data_file") or "").strip()
+        if not raw_data_file:
+            verification_issues.append(
+                {
+                    "kind": "missing_raw_data_file",
+                    "result_id": result_id,
+                    "message": "A declared raw_data_sha256 has no raw_data_file reference.",
+                }
+            )
+            continue
+
+        relative_file = Path(raw_data_file)
+        if relative_file.is_absolute():
+            verification_issues.append(
+                {
+                    "kind": "raw_data_file_outside_directory",
+                    "result_id": result_id,
+                    "message": "raw_data_file must be a relative path inside the supplied raw-data directory.",
+                }
+            )
+            continue
+        candidate = (root / relative_file).resolve()
+        try:
+            candidate.relative_to(root.resolve())
+        except ValueError:
+            verification_issues.append(
+                {
+                    "kind": "raw_data_file_outside_directory",
+                    "result_id": result_id,
+                    "message": "raw_data_file must remain inside the supplied raw-data directory.",
+                }
+            )
+            continue
+        if not candidate.is_file():
+            verification_issues.append(
+                {
+                    "kind": "missing_raw_data_file",
+                    "result_id": result_id,
+                    "message": f"Raw assay file not found: {raw_data_file}",
+                }
+            )
+            continue
+
+        digest = hashlib.sha256()
+        with candidate.open("rb") as raw_file:
+            for chunk in iter(lambda: raw_file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if digest.hexdigest() != declared_hash:
+            verification_issues.append(
+                {
+                    "kind": "raw_data_hash_mismatch",
+                    "result_id": result_id,
+                    "message": f"Computed SHA-256 does not match raw_data_sha256 for {raw_data_file}.",
+                }
+            )
+            continue
+        verified_ids.append(result_id)
+
+    if not results:
+        verification_status = "no_results"
+    elif not declaration["n_with_raw_data_sha256"]:
+        verification_status = "not_declared"
+    elif verification_issues:
+        verification_status = "blocked_on_verification"
+    elif declaration["n_with_raw_data_sha256"] < len(results):
+        verification_status = "verified_for_declared_only"
+    else:
+        verification_status = "verified_for_all"
+
+    return {
+        **declaration,
+        "verification_status": verification_status,
+        "raw_data_dir": str(root),
+        "n_verified": len(verified_ids),
+        "result_ids_verified": sorted(verified_ids),
+        "verification_issues": verification_issues,
     }
 
 

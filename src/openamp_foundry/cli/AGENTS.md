@@ -11,6 +11,22 @@ preserve dry-lab claim boundaries and fail closed when a gate is incomplete.
 - `commands/reports.py`: structured evidence and gate handlers.
 - `phase-aa-reproducibility-gate-check`: runs the AARG- presence gate; only
   `reproducibility_verified` returns exit code 0.
+- `phase-z-accountability-gate-check`: runs the ZAG- presence gate; only
+  `accountability_verified` returns exit code 0.
+- `phase-y-accountability-gate-check`: runs the YAG- baseline-vs-pipeline
+  presence gate; only `accountability_verified` returns exit code 0.
+- `phase-ab-claim-integrity-gate-check`: runs the ABAG- claim-integrity and
+  handoff presence gate; only `claim_integrity_verified` returns exit code 0.
+- `scientific-review-readiness-check`: runs the SRG- readiness gate; only
+  `ready_for_external_review` returns exit code 0. The checked-in Make example
+  is intentionally blocked until qualified evidence exists.
+- `domain-review-outcome-check`: validates a DRO- outcome. Supplying
+  `--package-json` enables fail-closed verification that `pep_sha256` matches
+  the exact frozen PEP JSON; without it, legacy ID-only validation remains.
+- `pilot-preregistration-check`: validates the PRR pilot pre-registration
+  contract, including locked-state and freeze-digest checks. This is a
+  pre-experiment integrity check, not signer authentication or biological
+  validation.
 
 ## Diagrams (Mermaid)
 
@@ -18,6 +34,10 @@ preserve dry-lab claim boundaries and fail closed when a gate is incomplete.
 flowchart LR
   JSON["Gate JSON"] --> Parser["CLI parser"] --> Handler["Evidence handler"]
   Handler --> AARG["AARG- gate"] --> Output["Text or JSON + exit status"]
+  Handler --> ZAG["ZAG- gate"] --> Output
+  Handler --> YAG["YAG- gate"] --> Output
+  Handler --> ABAG["ABAG- gate"] --> Output
+  Handler --> SRG["SRG- gate"] --> Output
 ```
 
 ```mermaid
@@ -25,8 +45,16 @@ sequenceDiagram
   participant User
   participant CLI
   participant Gate as AARG-
+  participant SRG as SRG-
   User->>CLI: phase-aa-reproducibility-gate-check
   CLI->>Gate: rebuild typed gate from artifact IDs
   Gate-->>CLI: verified, partial, or not established
   CLI-->>User: report and fail-closed status
+  User->>CLI: scientific-review-readiness-check
+  CLI->>SRG: rebuild typed readiness gate
+  SRG-->>CLI: ready, conditional, blocked, or not ready
+  CLI-->>User: report and fail-closed status
+  User->>CLI: domain-review-outcome-check --package-json pep.json
+  CLI->>CLI: compare pep_sha256 with stable package hash
+  CLI-->>User: verified identity or fail-closed status
 ```

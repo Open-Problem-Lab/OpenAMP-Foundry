@@ -19,7 +19,12 @@ from openamp_foundry.cli.commands.reports import (
     _run_adapter_check, _run_license_check, _run_artifact_compat_check, _run_adoption_scorecard,
     _run_reviewer_briefing_check, _run_audit_chain_check,
     _run_phase_ac_disconfirming_gate_check, _run_phase_aa_reproducibility_gate_check,
+    _run_phase_ab_claim_integrity_gate_check,
+    _run_phase_y_accountability_gate_check,
+    _run_phase_z_accountability_gate_check,
+    _run_scientific_review_readiness_check,
     _run_pre_registration_check,
+    _run_pilot_preregistration_check,
     _run_external_sharing_clearance_check,
     _run_rejection_reason_check,
     _run_negative_result_archive_check,
@@ -880,6 +885,14 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         help="Optional output path for markdown review report.",
     )
+    lab_result_report.add_argument(
+        "--raw-data-dir",
+        required=False,
+        help=(
+            "Optional directory of raw assay files. When supplied, each declared "
+            "raw_data_sha256/raw_data_file pair is independently verified."
+        ),
+    )
 
     calibration_intake = sub.add_parser(
         "calibration-intake",
@@ -910,6 +923,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--out-md",
         required=False,
         help="Optional output path for markdown calibration intake summary.",
+    )
+    calibration_intake.add_argument(
+        "--raw-data-dir",
+        required=False,
+        help=(
+            "Optional directory of raw assay files. Verification failures block "
+            "clean calibration intake."
+        ),
     )
 
     recalibration_gate = sub.add_parser(
@@ -2315,6 +2336,72 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["text", "json"], default="text"
     )
 
+    # ── Scientific review readiness gate (Phase R R4) ────────────────
+    scientific_review_readiness_parser = sub.add_parser(
+        "scientific-review-readiness-check",
+        help=(
+            "Build the Phase R scientific-review readiness gate. "
+            "Only a fully ready gate exits successfully; this is a dry-lab "
+            "review control, not biological validation."
+        ),
+    )
+    scientific_review_readiness_parser.add_argument(
+        "--entry-json",
+        required=True,
+        help="JSON object containing the SRG gate fields",
+    )
+    scientific_review_readiness_parser.add_argument(
+        "--format", choices=["text", "json"], default="text"
+    )
+
+    # ── Claim integrity gate (Phase AB AB5) ─────────────────────────
+    phase_ab_gate_parser = sub.add_parser(
+        "phase-ab-claim-integrity-gate-check",
+        help=(
+            "Build the Phase AB claim-integrity gate. This is a dry-lab "
+            "claim-review control, not scientific validation."
+        ),
+    )
+    phase_ab_gate_parser.add_argument(
+        "--entry-json",
+        required=True,
+        help="JSON object containing gate metadata and Phase AB components",
+    )
+    phase_ab_gate_parser.add_argument(
+        "--format", choices=["text", "json"], default="text"
+    )
+
+    # ── Baseline accountability gate (Phase Y Y5) ─────────────────
+    phase_y_gate_parser = sub.add_parser(
+        "phase-y-accountability-gate-check",
+        help=(
+            "Build the Phase Y baseline-vs-pipeline accountability gate. "
+            "This is a dry-lab review control, not biological validation."
+        ),
+    )
+    phase_y_gate_parser.add_argument(
+        "--entry-json",
+        required=True,
+        help="JSON object containing gate metadata and Phase Y artifact IDs",
+    )
+    phase_y_gate_parser.add_argument(
+        "--format", choices=["text", "json"], default="text"
+    )
+
+    # ── Per-family accountability gate (Phase Z Z5) ────────────────
+    phase_z_gate_parser = sub.add_parser(
+        "phase-z-accountability-gate-check",
+        help="Build the Phase Z per-family benchmark accountability gate",
+    )
+    phase_z_gate_parser.add_argument(
+        "--entry-json",
+        required=True,
+        help="JSON object containing gate metadata and Z artifact IDs",
+    )
+    phase_z_gate_parser.add_argument(
+        "--format", choices=["text", "json"], default="text"
+    )
+
     # ── Pre-registration form check (Phase N N1) ─────────────────────
     pre_registration_parser = sub.add_parser(
         "pre-registration-check",
@@ -2325,6 +2412,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["text", "json"], default="text"
     )
     pre_registration_parser.set_defaults(func=_run_pre_registration_check)
+
+    pilot_preregistration_parser = sub.add_parser(
+        "pilot-preregistration-check",
+        help="Validate the locked PRR pilot pre-registration contract",
+    )
+    pilot_preregistration_parser.add_argument("--entry-json", required=True)
+    pilot_preregistration_parser.add_argument(
+        "--format", choices=["text", "json"], default="text"
+    )
+    pilot_preregistration_parser.set_defaults(func=_run_pilot_preregistration_check)
 
     external_sharing_clearance_parser = sub.add_parser(
         "external-sharing-clearance-check",
@@ -2376,6 +2473,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate a DomainReviewOutcome (DRO-).",
     )
     domain_review_outcome_parser.add_argument("--entry-json", required=True)
+    domain_review_outcome_parser.add_argument(
+        "--package-json",
+        help=(
+            "Optional frozen PilotEvidencePackage JSON. When supplied, the "
+            "outcome must carry a matching pep_sha256."
+        ),
+    )
     domain_review_outcome_parser.add_argument(
         "--format", choices=["text", "json"], default="text"
     )
@@ -2935,8 +3039,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "phase-aa-reproducibility-gate-check":
         return _run_phase_aa_reproducibility_gate_check(args)
 
+    if args.command == "scientific-review-readiness-check":
+        return _run_scientific_review_readiness_check(args)
+
+    if args.command == "phase-ab-claim-integrity-gate-check":
+        return _run_phase_ab_claim_integrity_gate_check(args)
+
+    if args.command == "phase-y-accountability-gate-check":
+        return _run_phase_y_accountability_gate_check(args)
+
+    if args.command == "phase-z-accountability-gate-check":
+        return _run_phase_z_accountability_gate_check(args)
+
     if args.command == "pre-registration-check":
         return _run_pre_registration_check(args)
+
+    if args.command == "pilot-preregistration-check":
+        return _run_pilot_preregistration_check(args)
 
     if args.command == "external-sharing-clearance-check":
         return _run_external_sharing_clearance_check(args)

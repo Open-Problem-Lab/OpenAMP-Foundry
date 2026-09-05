@@ -7,9 +7,20 @@ descriptive evidence plumbing, not biological validation.
 
 ## Key Components
 
-- `lab_results.py`: input-path validation, schema validation, structured
-  invalid-file provenance, and candidate-level summaries. Rollups expose raw
-  observations separately from control-passing outcome flags and counts.
+- `lab_results.py`: input-path validation, schema and canonical calendar-date
+  validation, structured invalid-file provenance, and candidate-level summaries.
+  Rollups expose raw
+  observations separately from control-passing outcome flags and counts;
+  batch-level qualitative summaries follow the same raw-versus-usable split.
+  Calibration intake may additionally verify an optional frozen `panel_id`.
+  Reports expose declared `raw_data_sha256` coverage separately from verified
+  evidence; a declared hash is never presented as independently checked unless
+  the caller opts into `verify_raw_data_provenance()` with a raw-data directory
+  and `raw_data_file` references. Invalid or non-canonical `assay_date` values
+  remain structured file errors and cannot enter sorted reports or metrics.
+  Intake reports also classify explicit `SYNTHETIC` labels by result ID. This
+  is provenance visibility, not proof that an unlabeled record is real; the
+  recalibration gate rejects reports containing synthetic-labeled results.
 - `__init__.py`: stable public loader exports.
 
 ## Diagrams (Mermaid)
@@ -20,11 +31,20 @@ flowchart LR
   Validate --> Valid["Validated results"]
   Validate --> Errors["Structured file errors"]
   Validate --> PathError["Missing/non-directory path: fail closed"]
+  Valid --> Panel["Optional panel identity join"]
+  Valid --> Provenance["Raw-data hash coverage"]
   Valid --> Controls{"Both controls passed?"}
   Controls --> Usable["Interpretable outcome flags/counts"]
   Controls --> Raw["Raw audit fields + failure IDs"]
-  Usable --> Summary["Descriptive summaries"]
-  Raw --> Summary
+  Usable --> Summary["Usable descriptive summaries"]
+  Raw --> Audit["Raw audit summaries"]
+  Provenance --> Review["Explicit provenance status"]
+  Provenance --> Verify["Optional independent SHA-256 check"]
+  Verify --> VerifyResult{"File identity matches?"}
+  VerifyResult -->|yes| Verified["Verified file identity"]
+  VerifyResult -->|no| VerifyBlock["Verification issue"]
+  Valid --> Origin["Synthetic-origin classification"]
+  Origin --> Gate["Recalibration gate: synthetic labels block"]
 ```
 
 ```mermaid

@@ -15,7 +15,9 @@ def _run_lab_result_report(args: argparse.Namespace) -> int:
     )
 
     try:
-        report = build_lab_result_report(args.results_dir)
+        report = build_lab_result_report(
+            args.results_dir, getattr(args, "raw_data_dir", None)
+        )
     except (FileNotFoundError, NotADirectoryError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, indent=2))
         return 2
@@ -30,6 +32,7 @@ def _run_lab_result_report(args: argparse.Namespace) -> int:
                     "blocked"
                     if report.get("n_invalid_lab_result_files", 0)
                     or report.get("n_duplicate_lab_result_ids", 0)
+                    or report.get("raw_data_verification_issues", [])
                     else "ok"
                 ),
                 "n_results": report["summary"].get("n_results", 0),
@@ -39,6 +42,9 @@ def _run_lab_result_report(args: argparse.Namespace) -> int:
                 ),
                 "n_duplicate_lab_result_ids": report.get(
                     "n_duplicate_lab_result_ids", 0
+                ),
+                "raw_data_verification_issues": report.get(
+                    "raw_data_verification_issues", []
                 ),
                 "n_control_failures": len(report.get("control_failures", [])),
                 "out_json": args.out_json,
@@ -51,6 +57,7 @@ def _run_lab_result_report(args: argparse.Namespace) -> int:
         3
         if report.get("n_invalid_lab_result_files", 0)
         or report.get("n_duplicate_lab_result_ids", 0)
+        or report.get("raw_data_verification_issues", [])
         else 0
     )
 
@@ -652,7 +659,9 @@ def _run_calibration_intake(args: argparse.Namespace) -> int:
     )
 
     try:
-        report = build_calibration_intake_report(args.panel, args.results_dir)
+        report = build_calibration_intake_report(
+            args.panel, args.results_dir, getattr(args, "raw_data_dir", None)
+        )
     except (FileNotFoundError, NotADirectoryError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, indent=2))
         return 2
@@ -799,6 +808,8 @@ def _run_recalibration_gate(args: argparse.Namespace) -> int:
         "n_lab_results": verdict.n_lab_results,
         "n_invalid_lab_result_files": verdict.n_invalid_lab_result_files,
         "n_input_integrity_issues": verdict.n_input_integrity_issues,
+        "n_synthetic_lab_results": verdict.n_synthetic_lab_results,
+        "synthetic_lab_result_ids": list(verdict.synthetic_lab_result_ids),
         "n_matched_candidates": verdict.n_matched_candidates,
         "rule_results": [
             {"rule_id": r.rule_id, "passed": r.passed, "observed": r.observed,
@@ -878,6 +889,12 @@ def _run_recalibration_engine(args: argparse.Namespace) -> int:
         reviewer_artefact_status=(),
         reasons=tuple(gate_data.get("reasons", [])),
         summary=gate_data.get("summary", ""),
+        n_invalid_lab_result_files=gate_data.get("n_invalid_lab_result_files", 0),
+        n_input_integrity_issues=gate_data.get("n_input_integrity_issues", 0),
+        n_synthetic_lab_results=gate_data.get("n_synthetic_lab_results", 0),
+        synthetic_lab_result_ids=tuple(
+            gate_data.get("synthetic_lab_result_ids", [])
+        ),
     )
 
     from openamp_foundry.reports.recalibration_report import (
@@ -1820,6 +1837,168 @@ def _run_phase_aa_reproducibility_gate_check(args: argparse.Namespace) -> int:
     return 0 if gate.verdict == "reproducibility_verified" else 3
 
 
+def _run_scientific_review_readiness_check(args: argparse.Namespace) -> int:
+    """Build and report the Phase R scientific-review readiness gate."""
+    import dataclasses
+
+    from openamp_foundry.evidence.scientific_review_readiness_gate import (
+        build_scientific_review_readiness_gate,
+        format_scientific_review_readiness_gate,
+    )
+
+    try:
+        payload = json.loads(args.entry_json)
+    except json.JSONDecodeError as exc:
+        error = {"passed": False, "violations": [f"invalid JSON input: {exc}"]}
+        if args.format == "json":
+            print(json.dumps(error, indent=2))
+        else:
+            print("[FAIL] Scientific Review Readiness Check")
+            print(f"  ERROR: {error['violations'][0]}")
+        return 3
+
+    try:
+        gate = build_scientific_review_readiness_gate(
+            srg_id=payload["srg_id"],
+            candidate_family_id=payload["candidate_family_id"],
+            cfc_id=payload["cfc_id"],
+            fnr_id=payload["fnr_id"],
+            atr_id=payload["atr_id"],
+            pqg_id=payload["pqg_id"],
+            readiness_verdict=payload["readiness_verdict"],
+            safety_flags=payload.get("safety_flags", []),
+            failed_gates=payload.get("failed_gates", []),
+            review_scope=payload["review_scope"],
+            n_confirmed_hits=payload["n_confirmed_hits"],
+            n_total_candidates=payload["n_total_candidates"],
+            limitations=payload["limitations"],
+            notes=payload.get("notes", ""),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        error = {"passed": False, "violations": [f"invalid SRG input: {exc}"]}
+        if args.format == "json":
+            print(json.dumps(error, indent=2))
+        else:
+            print("[FAIL] Scientific Review Readiness Check")
+            print(f"  ERROR: {error['violations'][0]}")
+        return 3
+
+    is_ready = gate.readiness_verdict == "ready_for_external_review"
+    if args.format == "json":
+        print(json.dumps({**dataclasses.asdict(gate), "passed": is_ready}, indent=2))
+    else:
+        status = "PASS" if is_ready else "FAIL"
+        print(f"[{status}] {format_scientific_review_readiness_gate(gate)}")
+
+    return 0 if is_ready else 3
+
+
+def _run_phase_ab_claim_integrity_gate_check(args: argparse.Namespace) -> int:
+    """Build and report the Phase AB claim-integrity gate."""
+    import dataclasses
+
+    from openamp_foundry.evidence.phase_ab_claim_integrity_gate import (
+        build_phase_ab_claim_integrity_gate,
+        format_phase_ab_claim_integrity_gate,
+    )
+
+    try:
+        payload = json.loads(args.entry_json)
+        gate = build_phase_ab_claim_integrity_gate(
+            abag_id=payload["abag_id"],
+            pipeline_version=payload["pipeline_version"],
+            components_present=payload.get("components_present", []),
+            limitations=payload["limitations"],
+            created_at=payload["created_at"],
+        )
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        error = {"passed": False, "violations": [f"invalid ABAG input: {exc}"]}
+        if args.format == "json":
+            print(json.dumps(error, indent=2))
+        else:
+            print("[FAIL] Phase AB Claim Integrity Gate Check")
+            print(f"  ERROR: {error['violations'][0]}")
+        return 3
+
+    is_verified = gate.verdict == "claim_integrity_verified"
+    if args.format == "json":
+        print(json.dumps({**dataclasses.asdict(gate), "passed": is_verified}, indent=2))
+    else:
+        status = "PASS" if is_verified else "FAIL"
+        print(f"[{status}] {format_phase_ab_claim_integrity_gate(gate)}")
+
+    return 0 if is_verified else 3
+
+
+def _run_phase_y_accountability_gate_check(args: argparse.Namespace) -> int:
+    """Build and report the Phase Y baseline accountability gate."""
+    import dataclasses
+
+    from openamp_foundry.evidence.phase_y_accountability_gate import (
+        build_phase_y_accountability_gate,
+        format_phase_y_accountability_gate,
+    )
+
+    try:
+        payload = json.loads(args.entry_json)
+        gate = build_phase_y_accountability_gate(
+            yag_id=payload["yag_id"],
+            pipeline_version=payload["pipeline_version"],
+            cbr_artifact_id=payload.get("cbr_artifact_id", ""),
+            fia_artifact_id=payload.get("fia_artifact_id", ""),
+            sda_artifact_id=payload.get("sda_artifact_id", ""),
+            pmc_artifact_id=payload.get("pmc_artifact_id", ""),
+            limitations=payload["limitations"],
+            created_at=payload["created_at"],
+        )
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        error = {"passed": False, "violations": [f"invalid YAG input: {exc}"]}
+        if args.format == "json":
+            print(json.dumps(error, indent=2))
+        else:
+            print("[FAIL] Phase Y Accountability Gate Check")
+            print(f"  ERROR: {error['violations'][0]}")
+        return 3
+
+    is_verified = gate.yag_verdict == "accountability_verified"
+    if args.format == "json":
+        print(json.dumps({**dataclasses.asdict(gate), "passed": is_verified}, indent=2))
+    else:
+        status = "PASS" if is_verified else "FAIL"
+        print(f"[{status}] {format_phase_y_accountability_gate(gate)}")
+
+    return 0 if is_verified else 3
+
+
+def _run_phase_z_accountability_gate_check(args: argparse.Namespace) -> int:
+    """Build and report the Phase Z per-family accountability gate."""
+    import dataclasses
+
+    from openamp_foundry.evidence.phase_z_accountability_gate import (
+        build_phase_z_accountability_gate,
+        format_phase_z_accountability_gate,
+    )
+
+    payload = json.loads(args.entry_json)
+    gate = build_phase_z_accountability_gate(
+        zag_id=payload["zag_id"],
+        pipeline_version=payload["pipeline_version"],
+        fbh_id=payload.get("fbh_id", ""),
+        bxr_id=payload.get("bxr_id", ""),
+        arg_id=payload.get("arg_id", ""),
+        cbf_id=payload.get("cbf_id", ""),
+        created_at=payload["created_at"],
+    )
+
+    if args.format == "json":
+        print(json.dumps(dataclasses.asdict(gate), indent=2))
+    else:
+        status = "PASS" if gate.verdict == "accountability_verified" else "FAIL"
+        print(f"[{status}] {format_phase_z_accountability_gate(gate)}")
+
+    return 0 if gate.verdict == "accountability_verified" else 3
+
+
 def _run_pre_registration_check(args: argparse.Namespace) -> int:
     """Validate a pre-registration form passed as JSON."""
     entry_dict = json.loads(args.entry_json)
@@ -1845,6 +2024,145 @@ def _run_pre_registration_check(args: argparse.Namespace) -> int:
             print(f"  WARN:  {warning}")
 
     return 0 if result.passed else 3
+
+
+def _run_pilot_preregistration_check(args: argparse.Namespace) -> int:
+    """Validate the PRR pilot pre-registration contract from JSON."""
+    from openamp_foundry.evidence.pilot_preregistration import (
+        PilotPreregistration,
+        ScoreThreshold,
+        validate_pilot_preregistration,
+    )
+
+    try:
+        entry_dict = json.loads(args.entry_json)
+    except (json.JSONDecodeError, TypeError) as exc:
+        print(json.dumps({"status": "error", "error": f"Invalid JSON: {exc}"}))
+        return 2
+    if not isinstance(entry_dict, dict):
+        print(json.dumps({"status": "error", "error": "--entry-json must be a JSON object"}))
+        return 2
+
+    string_fields = (
+        "record_id", "version", "frozen_at", "pipeline_version", "git_sha",
+        "primary_hypothesis", "positive_control", "negative_control",
+        "outcome_metric", "notes", "freeze_sha256",
+    )
+    for field_name in string_fields:
+        if field_name in entry_dict and not isinstance(entry_dict[field_name], str):
+            print(json.dumps({
+                "status": "error",
+                "error": f"Malformed PRR JSON: {field_name} must be a string",
+            }))
+            return 2
+    list_fields = ("selection_criteria", "amendment_reasons", "score_thresholds")
+    for field_name in list_fields:
+        if field_name in entry_dict and not isinstance(entry_dict[field_name], list):
+            print(json.dumps({
+                "status": "error",
+                "error": f"Malformed PRR JSON: {field_name} must be a list",
+            }))
+            return 2
+    for field_name in ("selection_criteria", "amendment_reasons"):
+        if any(not isinstance(item, str) for item in entry_dict.get(field_name, [])):
+            print(json.dumps({
+                "status": "error",
+                "error": f"Malformed PRR JSON: {field_name} entries must be strings",
+            }))
+            return 2
+    for field_name in ("dry_lab_only_declaration", "is_locked"):
+        if field_name in entry_dict and not isinstance(entry_dict[field_name], bool):
+            print(json.dumps({
+                "status": "error",
+                "error": f"Malformed PRR JSON: {field_name} must be a boolean",
+            }))
+            return 2
+    for field_name in ("n_candidates_planned", "amendment_count"):
+        if field_name in entry_dict and (
+            not isinstance(entry_dict[field_name], int)
+            or isinstance(entry_dict[field_name], bool)
+        ):
+            print(json.dumps({
+                "status": "error",
+                "error": f"Malformed PRR JSON: {field_name} must be an integer",
+            }))
+            return 2
+    for threshold in entry_dict.get("score_thresholds", []):
+        if not isinstance(threshold, dict):
+            print(json.dumps({
+                "status": "error",
+                "error": "Malformed PRR JSON: score_thresholds entries must be objects",
+            }))
+            return 2
+        if not isinstance(threshold.get("score_name"), str):
+            print(json.dumps({
+                "status": "error",
+                "error": "Malformed PRR JSON: score_thresholds.score_name must be a string",
+            }))
+            return 2
+        if (
+            not isinstance(threshold.get("threshold_value"), (int, float))
+            or isinstance(threshold.get("threshold_value"), bool)
+        ):
+            print(json.dumps({
+                "status": "error",
+                "error": "Malformed PRR JSON: score_thresholds.threshold_value must be numeric",
+            }))
+            return 2
+        if not isinstance(threshold.get("direction"), str):
+            print(json.dumps({
+                "status": "error",
+                "error": "Malformed PRR JSON: score_thresholds.direction must be a string",
+            }))
+            return 2
+
+    try:
+        thresholds = [
+            ScoreThreshold(**threshold)
+            for threshold in entry_dict.get("score_thresholds", [])
+        ]
+        record = PilotPreregistration(
+            record_id=entry_dict.get("record_id", ""),
+            version=entry_dict.get("version", ""),
+            frozen_at=entry_dict.get("frozen_at", ""),
+            pipeline_version=entry_dict.get("pipeline_version", ""),
+            git_sha=entry_dict.get("git_sha", ""),
+            primary_hypothesis=entry_dict.get("primary_hypothesis", ""),
+            selection_criteria=entry_dict.get("selection_criteria", []),
+            score_thresholds=thresholds,
+            n_candidates_planned=entry_dict.get("n_candidates_planned", 0),
+            positive_control=entry_dict.get("positive_control", ""),
+            negative_control=entry_dict.get("negative_control", ""),
+            outcome_metric=entry_dict.get("outcome_metric", ""),
+            dry_lab_only_declaration=entry_dict.get("dry_lab_only_declaration", True),
+            is_locked=entry_dict.get("is_locked", False),
+            amendment_count=entry_dict.get("amendment_count", 0),
+            amendment_reasons=entry_dict.get("amendment_reasons", []),
+            notes=entry_dict.get("notes", ""),
+            freeze_sha256=entry_dict.get("freeze_sha256", ""),
+        )
+    except (TypeError, ValueError) as exc:
+        print(json.dumps({"status": "error", "error": f"Malformed PRR JSON: {exc}"}))
+        return 2
+
+    result = validate_pilot_preregistration(record)
+    if args.format == "json":
+        import dataclasses
+
+        print(json.dumps(dataclasses.asdict(result), indent=2))
+    else:
+        status = "PASS" if result.is_valid else "FAIL"
+        print(
+            f"[{status}] Pilot Pre-Registration: {result.record_id} "
+            f"(locked={record.is_locked})"
+        )
+        for error in result.violations:
+            print(f"  ERROR: {error}")
+        for warning in result.warnings:
+            print(f"  WARN:  {warning}")
+        print(f"  {result.validation_summary}")
+
+    return 0 if result.is_valid else 3
 
 
 def _run_simulation_ci_report(args: argparse.Namespace) -> int:
@@ -3223,13 +3541,28 @@ def _run_reviewer_questionnaire_check(args):
 
 def _run_domain_review_outcome_check(args):
     from openamp_foundry.evidence.domain_review_outcome import (
+        validate_domain_review_outcome_against_package_dict,
         validate_domain_review_outcome_dict,
     )
     import json
     import sys
 
-    data = json.loads(args.entry_json)
-    result = validate_domain_review_outcome_dict(data)
+    try:
+        data = json.loads(args.entry_json)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: invalid --entry-json: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.package_json:
+        try:
+            with Path(args.package_json).open("r", encoding="utf-8") as handle:
+                package = json.load(handle)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"ERROR: invalid --package-json: {exc}", file=sys.stderr)
+            sys.exit(1)
+        result = validate_domain_review_outcome_against_package_dict(data, package)
+    else:
+        result = validate_domain_review_outcome_dict(data)
 
     if args.format == "json":
         out = {
@@ -3243,6 +3576,7 @@ def _run_domain_review_outcome_check(args):
             "errors": result.errors,
             "warnings": result.warnings,
             "dry_lab_only": result.dry_lab_only,
+            "package_hash_status": result.package_hash_status,
         }
         print(json.dumps(out, indent=2))
     else:
@@ -3254,6 +3588,7 @@ def _run_domain_review_outcome_check(args):
         print(f"  Domain: {result.review_domain}")
         print(f"  Verdict: {result.outcome_verdict}")
         print(f"  Confidence: {result.outcome_confidence}")
+        print(f"  Package hash: {result.package_hash_status}")
         if result.errors:
             print("  Errors:")
             for e in result.errors:

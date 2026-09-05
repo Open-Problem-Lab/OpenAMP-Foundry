@@ -16,8 +16,20 @@ gate behavior, and the synthetic end-to-end calibration loop.
   the intake CLI and recalibration gate.
 - Missing or non-directory result paths must return an input error before a
   report is written; an existing empty directory remains valid.
+- Result candidate IDs absent from the submitted panel must remain visible as
+  orphan provenance and block clean intake/recalibration.
+- When a panel supplies optional certificate hashes, result hashes must match
+  for every tested candidate; mismatches and partial coverage block intake.
+  Legacy panels without that column remain explicitly unverified.
 - Control-failed assay observations remain visible but cannot contribute to
   per-assay cohort metrics; tests must preserve this fail-closed boundary.
+- Explicit `SYNTHETIC` result labels must remain visible in intake provenance
+  and must force the recalibration verdict to false even when all quantitative
+  gate rules pass.
+- Happy-path API fixtures are deliberately test-only but provenance-
+  unclassified, so they can exercise the quantitative gate without pretending
+  that synthetic data is eligible for recalibration. The shipped examples and
+  explicit synthetic-label tests remain the fail-closed boundary.
 
 ## Diagrams (Mermaid)
 
@@ -62,10 +74,15 @@ stateDiagram-v2
   LoadResults --> InputValidated: all JSON files valid
   LoadResults --> InputBlocked: one or more invalid files
   LoadResults --> IdentityBlocked: duplicate result/panel identity
+  LoadResults --> OrphanBlocked: result candidate absent from panel
+  LoadResults --> CertificateBlocked: opted-in certificate hash mismatch/partial coverage
   LoadResults --> PathError: missing or non-directory path
   PathError --> [*]: error exit 2, no report
   InputBlocked --> [*]: report written, exit 3, no recalibration
   IdentityBlocked --> [*]: report written, exit 3, no recalibration
+  OrphanBlocked --> [*]: report written, exit 3, no recalibration
+  CertificateBlocked --> [*]: report written, exit 3, no recalibration
+  SyntheticBlocked --> [*]: gate verdict false, no recalibration
   InputValidated --> Gate: evaluate policy
   Gate --> [*]: human-reviewed verdict
 ```

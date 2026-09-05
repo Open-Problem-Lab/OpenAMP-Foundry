@@ -9,6 +9,7 @@ Verifies that:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import warnings
 
@@ -21,8 +22,11 @@ from openamp_foundry.data.lab_results import (
     load_lab_results_dir,
     load_lab_results_dir_with_errors,
     summarise_candidate_outcomes,
+    summarise_data_origin,
     summarise_lab_results,
+    summarise_raw_data_provenance,
     validate_lab_results_directory,
+    verify_raw_data_provenance,
 )
 
 
@@ -103,6 +107,27 @@ class TestLoadLabResult:
         with pytest.raises(Exception):
             load_lab_result(path)
 
+    @pytest.mark.parametrize("assay_date", ["2026-02-30", "2026-02-29"])
+    def test_impossible_assay_date_rejected(self, tmp_path, assay_date):
+        result = _valid_result(assay_date=assay_date)
+        path = tmp_path / "bad_date.json"
+        path.write_text(json.dumps(result))
+        with pytest.raises(ValueError, match="calendar date"):
+            load_lab_result(path)
+
+    def test_noncanonical_assay_date_rejected(self, tmp_path):
+        result = _valid_result(assay_date="20260701")
+        path = tmp_path / "noncanonical_date.json"
+        path.write_text(json.dumps(result))
+        with pytest.raises(ValueError, match="canonical"):
+            load_lab_result(path)
+
+    def test_valid_leap_day_loads(self, tmp_path):
+        result = _valid_result(assay_date="2024-02-29")
+        path = tmp_path / "leap_day.json"
+        path.write_text(json.dumps(result))
+        assert load_lab_result(path)["assay_date"] == "2024-02-29"
+
     def test_null_result_value_allowed(self, tmp_path):
         result = _valid_result(result_value=None, result_qualitative="inconclusive")
         path = tmp_path / "null_val.json"
@@ -154,11 +179,132 @@ class TestSummariseLabResults:
         summary = summarise_lab_results(results)
         assert summary["n_valid_controls"] == 1
 
+    def test_qualitative_counts_separate_raw_and_usable_observations(self):
+        results = [
+            _valid_result(result_id="R1", result_qualitative="active"),
+            _valid_result(
+                result_id="R2",
+                result_qualitative="toxic",
+                positive_control_passed=False,
+            ),
+            _valid_result(result_id="R3", result_qualitative="inactive"),
+        ]
+
+        summary = summarise_lab_results(results)
+
+        assert summary["by_qualitative_result"] == {
+            "active": 1,
+            "inactive": 1,
+            "toxic": 1,
+        }
+        assert summary["by_usable_qualitative_result"] == {
+            "active": 1,
+            "inactive": 1,
+        }
+        assert summary["n_valid_controls"] == 2
+
     def test_disclaimer_present(self):
         results = [_valid_result()]
         summary = summarise_lab_results(results)
         assert "disclaimer" in summary
         assert len(summary["disclaimer"]) > 20
+
+
+class TestRawDataProvenance:
+    def test_empty_results_have_explicit_status(self):
+        provenance = summarise_raw_data_provenance([])
+        assert provenance["status"] == "no_results"
+        assert provenance["n_with_raw_data_sha256"] == 0
+
+    def test_missing_hashes_are_not_available_not_verified(self):
+        provenance = summarise_raw_data_provenance([_valid_result()])
+        assert provenance["status"] == "not_available"
+        assert provenance["result_ids_without_raw_data_sha256"] == ["RES-001"]
+        assert "not an independently verified" in provenance["disclaimer"]
+
+
+    def test_partial_hash_coverage_is_visible(self):
+        results = [
+            _valid_result(result_id="R1", raw_data_sha256="a" * 64),
+            _valid_result(result_id="R2", raw_data_sha256=None),
+        ]
+        provenance = summarise_raw_data_provenance(results)
+        assert provenance["status"] == "partial_declaration"
+        assert provenance["n_with_raw_data_sha256"] == 1
+        assert provenance["result_ids_without_raw_data_sha256"] == ["R2"]
+
+    def test_all_hashes_are_declared_but_not_verified(self):
+        results = [
+            _valid_result(result_id="R1", raw_data_sha256="a" * 64),
+            _valid_result(result_id="R2", raw_data_sha256="b" * 64),
+        ]
+        provenance = summarise_raw_data_provenance(results)
+        assert provenance["status"] == "declared_for_all"
+        assert provenance["n_without_raw_data_sha256"] == 0
+        assert "not an independently verified" in provenance["disclaimer"]
+
+    def test_opt_in_verification_matches_independent_file_hash(self, tmp_path):
+        raw_dir = tmp_path / "raw"
+        raw_dir.mkdir()
+        raw_file = raw_dir / "RES-001.csv"
+        raw_file.write_bytes(b"result_id,value\nRES-001,4\n")
+        digest = hashlib.sha256(raw_file.read_bytes()).hexdigest()
+
+        provenance = verify_raw_data_provenance(
+            [_valid_result(raw_data_sha256=digest, raw_data_file="RES-001.csv")],
+            raw_dir,
+        )
+
+        assert provenance["verification_status"] == "verified_for_all"
+        assert provenance["n_verified"] == 1
+        assert provenance["result_ids_verified"] == ["RES-001"]
+        assert provenance["verification_issues"] == []
+
+    @pytest.mark.parametrize(
+        ("raw_data_file", "expected_kind"),
+        [
+            (None, "missing_raw_data_file"),
+            ("missing.csv", "missing_raw_data_file"),
+            ("../outside.csv", "raw_data_file_outside_directory"),
+        ],
+    )
+    def test_opt_in_verification_blocks_unverifiable_declarations(
+        self, tmp_path, raw_data_file, expected_kind
+    ):
+        raw_dir = tmp_path / "raw"
+        raw_dir.mkdir()
+
+        provenance = verify_raw_data_provenance(
+            [_valid_result(raw_data_sha256="a" * 64, raw_data_file=raw_data_file)],
+            raw_dir,
+        )
+
+        assert provenance["verification_status"] == "blocked_on_verification"
+        assert provenance["verification_issues"][0]["kind"] == expected_kind
+
+
+class TestDataOrigin:
+    def test_empty_results_have_explicit_status(self):
+        origin = summarise_data_origin([])
+        assert origin["status"] == "no_results"
+        assert origin["n_synthetic_results"] == 0
+
+    def test_synthetic_labels_are_retained_by_result_id(self):
+        origin = summarise_data_origin(
+            [
+                _valid_result(result_id="SYN-001", notes="SYNTHETIC TEST DATA"),
+                _valid_result(result_id="REAL-001"),
+            ]
+        )
+        assert origin["status"] == "synthetic_present"
+        assert origin["synthetic_result_ids"] == ["SYN-001"]
+        assert origin["n_unclassified_results"] == 1
+
+    def test_unlabelled_records_are_not_called_real(self):
+        origin = summarise_data_origin([_valid_result()])
+        assert origin["status"] == "unclassified"
+        assert origin["n_synthetic_results"] == 0
+        assert "not independently verified" in origin["disclaimer"]
 
 
 class TestCandidateResultMap:
@@ -264,6 +410,16 @@ class TestLoadLabResultsDir:
         assert [r["result_id"] for r in results] == ["GOOD-001"]
         assert errors[0]["file"] == "bad.json"
         assert errors[0]["error"]
+
+    def test_structured_loader_retains_invalid_calendar_date(self, tmp_path):
+        invalid = _valid_result(result_id="BAD-DATE", assay_date="2026-02-30")
+        (tmp_path / "bad_date.json").write_text(json.dumps(invalid))
+
+        results, errors = load_lab_results_dir_with_errors(tmp_path)
+
+        assert results == []
+        assert errors[0]["file"] == "bad_date.json"
+        assert "calendar date" in errors[0]["error"]
 
     def test_sorted_by_assay_date(self, tmp_path):
         date_map = {0: "2026-07-03", 1: "2026-07-01", 2: "2026-07-02"}

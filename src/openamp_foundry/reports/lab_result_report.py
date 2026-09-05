@@ -16,17 +16,36 @@ from openamp_foundry.data.lab_results import (
     candidate_result_map,
     duplicate_result_ids,
     load_lab_results_dir_with_errors,
+    summarise_data_origin,
     summarise_candidate_outcomes,
     summarise_lab_results,
+    verify_raw_data_provenance,
+)
+
+LAB_RESULT_REPORT_SCHEMA = (
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "schemas"
+    / "lab_result_report.schema.json"
 )
 
 
-def build_lab_result_report(results_dir: str | Path) -> dict[str, Any]:
+def validate_lab_result_report(report: dict[str, Any]) -> None:
+    """Validate the portable report contract before a report is handed off."""
+    from openamp_foundry.evidence.schemas import validate_json_schema
+
+    validate_json_schema(report, LAB_RESULT_REPORT_SCHEMA)
+
+
+def build_lab_result_report(
+    results_dir: str | Path, raw_data_dir: str | Path | None = None
+) -> dict[str, Any]:
     """Build a machine-readable wet-lab result report from a directory of JSON files."""
     results, invalid_lab_result_files = load_lab_results_dir_with_errors(results_dir)
     summary = summarise_lab_results(results)
+    data_origin = summarise_data_origin(results)
     by_candidate = summarise_candidate_outcomes(results)
     duplicate_ids = duplicate_result_ids(results)
+    raw_data_provenance = verify_raw_data_provenance(results, raw_data_dir)
     controls_failed = [
         {
             "result_id": r["result_id"],
@@ -43,8 +62,11 @@ def build_lab_result_report(results_dir: str | Path) -> dict[str, Any]:
         lab = r.get("performed_by_lab", "unknown")
         by_lab[lab] = by_lab.get(lab, 0) + 1
 
-    return {
+    report = {
         "summary": summary,
+        "data_origin": data_origin,
+        "raw_data_provenance": raw_data_provenance,
+        "raw_data_verification_issues": raw_data_provenance["verification_issues"],
         "n_invalid_lab_result_files": len(invalid_lab_result_files),
         "invalid_lab_result_files": invalid_lab_result_files,
         "input_validation_status": (
@@ -52,6 +74,8 @@ def build_lab_result_report(results_dir: str | Path) -> dict[str, Any]:
             if invalid_lab_result_files
             else "blocked_on_duplicate_ids"
             if duplicate_ids
+            else "blocked_on_raw_data_verification"
+            if raw_data_provenance["verification_issues"]
             else "input_validated"
         ),
         "duplicate_lab_result_ids": duplicate_ids,
@@ -66,6 +90,8 @@ def build_lab_result_report(results_dir: str | Path) -> dict[str, Any]:
             "Qualified expert review and independent replication remain mandatory."
         ),
     }
+    validate_lab_result_report(report)
+    return report
 
 
 def write_lab_result_markdown(report: dict[str, Any], out_path: str | Path) -> None:
@@ -73,6 +99,9 @@ def write_lab_result_markdown(report: dict[str, Any], out_path: str | Path) -> N
     p = Path(out_path)
     p.parent.mkdir(parents=True, exist_ok=True)
     s = report["summary"]
+    raw_data_status = report.get("raw_data_provenance", {}).get(
+        "status", "not_available"
+    )
 
     lines = [
         "# Wet-Lab Result Report",
@@ -86,6 +115,10 @@ def write_lab_result_markdown(report: dict[str, Any], out_path: str | Path) -> N
         f"- Results with both controls passing: {s.get('n_valid_controls', 0)}",
         f"- Invalid result files: {report.get('n_invalid_lab_result_files', 0)}",
         f"- Duplicate result IDs: {report.get('n_duplicate_lab_result_ids', 0)}",
+        f"- Data-origin status: {report.get('data_origin', {}).get('status', 'unclassified')}",
+        f"- Synthetic results: {report.get('data_origin', {}).get('n_synthetic_results', 0)}",
+        f"- Raw-data hash coverage: {raw_data_status}",
+        f"- Raw-data hash verification: {report.get('raw_data_provenance', {}).get('verification_status', 'not_requested')}",
         "",
         "## Assay Type Counts",
         "",
@@ -97,7 +130,19 @@ def write_lab_result_markdown(report: dict[str, Any], out_path: str | Path) -> N
 
     lines += [
         "",
-        "## Qualitative Outcome Counts",
+        "## Usable Qualitative Outcome Counts",
+        "",
+        "| Outcome | Count |",
+        "|---|---:|",
+    ]
+    for outcome, count in sorted(s.get("by_usable_qualitative_result", {}).items()):
+        lines.append(f"| {outcome} | {count} |")
+
+    lines += [
+        "",
+        "## Raw Qualitative Observations (Audit Only)",
+        "",
+        "> Includes failed-control assays. These observations are retained for audit and are not interpretable cohort evidence.",
         "",
         "| Outcome | Count |",
         "|---|---:|",
@@ -157,6 +202,22 @@ def write_lab_result_markdown(report: dict[str, Any], out_path: str | Path) -> N
             "",
             "- Duplicate result IDs: " + ", ".join(duplicate_ids),
         ]
+
+    raw_data_issues = report.get("raw_data_verification_issues", [])
+    if raw_data_issues:
+        lines += [
+            "",
+            "## Raw-Data Verification Blockers",
+            "",
+            "> The supplied raw-data directory could not verify every declared hash.",
+            "",
+            "| Kind | Result ID | Message |",
+            "|---|---|---|",
+        ]
+        lines.extend(
+            f"| {item['kind']} | {item['result_id']} | {item['message']} |"
+            for item in raw_data_issues
+        )
 
     lines += [
         "",

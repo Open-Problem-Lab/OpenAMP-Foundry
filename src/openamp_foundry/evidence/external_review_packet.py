@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 REQUIRED_PACKET_COMPONENTS: tuple[str, ...] = (
     "BRC", "ECI", "FET", "PTR", "SRS",
@@ -30,6 +31,7 @@ VALID_CALIBRATION_ASSESSMENTS: frozenset[str] = frozenset({
 DRY_LAB_MAX_PROOF_LADDER_LEVEL = 2
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 _GIT_SHA_RE = re.compile(r"^[a-f0-9]{7,40}$")
+_UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 
 @dataclass
@@ -132,6 +134,22 @@ def validate_external_review_packet(erp: ExternalReviewPacket) -> None:
     for req in REQUIRED_PACKET_COMPONENTS:
         if component_types.count(req) != 1:
             raise ValueError(f"Exactly one component required for {req!r}")
+    if set(component_types) != set(REQUIRED_PACKET_COMPONENTS):
+        raise ValueError(
+            "components must contain exactly the required component types"
+        )
+    for component in erp.components:
+        expected_prefix = f"{component.component_type}-"
+        if component.present and not component.artifact_id.startswith(expected_prefix):
+            raise ValueError(
+                f"{component.component_type} artifact_id must start with "
+                f"{expected_prefix!r}: {component.artifact_id!r}"
+            )
+        if not component.present and component.artifact_id:
+            raise ValueError(
+                f"absent {component.component_type} component must not carry "
+                f"artifact_id {component.artifact_id!r}"
+            )
     if erp.packet_status not in VALID_PACKET_STATUSES:
         raise ValueError(
             f"packet_status {erp.packet_status!r} not in VALID_PACKET_STATUSES"
@@ -140,8 +158,16 @@ def validate_external_review_packet(erp: ExternalReviewPacket) -> None:
         raise ValueError("dry_lab_only must be True")
     if not erp.limitations:
         raise ValueError("limitations must be non-empty")
-    if not erp.created_at:
-        raise ValueError("created_at must be non-empty")
+    if not isinstance(erp.created_at, str) or not _UTC_TIMESTAMP_RE.fullmatch(erp.created_at):
+        raise ValueError(
+            "created_at must be a canonical UTC timestamp in YYYY-MM-DDTHH:MM:SSZ form"
+        )
+    try:
+        parsed_created_at = datetime.strptime(erp.created_at, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as exc:
+        raise ValueError("created_at must contain a real calendar date and time") from exc
+    if parsed_created_at.strftime("%Y-%m-%dT%H:%M:%SZ") != erp.created_at:
+        raise ValueError("created_at must use the canonical UTC timestamp form")
     n_req = len(REQUIRED_PACKET_COMPONENTS)
     if erp.n_components_required != n_req:
         raise ValueError(
@@ -155,6 +181,13 @@ def validate_external_review_packet(erp: ExternalReviewPacket) -> None:
     )
     if erp.missing_component_types != expected_missing:
         raise ValueError("missing_component_types mismatch")
+    expected_status = _compute_status(n_present, n_req)
+    if erp.packet_status != expected_status:
+        raise ValueError(
+            "packet_status mismatch: expected "
+            f"{expected_status!r} for {n_present}/{n_req} present components, "
+            f"got {erp.packet_status!r}"
+        )
 
 
 def _validate_legacy_packet(packet: ExternalReviewPacket) -> PacketValidationResult:

@@ -12,7 +12,10 @@ from openamp_foundry.data.lab_results import (
     load_lab_results_dir_with_errors,
     validate_lab_results_directory,
     summarise_candidate_outcomes,
+    summarise_data_origin,
     summarise_lab_results,
+    summarise_raw_data_provenance,
+    verify_raw_data_provenance,
 )
 from openamp_foundry.data.loaders import (
     is_valid_sequence,
@@ -31,5 +34,8 @@ __all__ = [
     "validate_lab_results_directory",
     "normalize_sequence",
     "summarise_candidate_outcomes",
+    "summarise_data_origin",
     "summarise_lab_results",
+    "summarise_raw_data_provenance",
+    "verify_raw_data_provenance",
 ]
